@@ -30,6 +30,14 @@ while ($true) {
         git commit -m "auto-push: build progress $ts"
         git push -u origin main
         Write-Host "Pushed at $(Get-Date). Done."
+
+        # Restore normal power settings (minutes)
+        Write-Host "Restoring power settings..."
+        powercfg /change standby-timeout-ac 30
+        powercfg /change monitor-timeout-ac 15
+        powercfg /change hibernate-timeout-ac 60
+        Write-Host "Sleep: 30min | Screen off: 15min | Hibernate: 60min"
+
         break
     }
     else {

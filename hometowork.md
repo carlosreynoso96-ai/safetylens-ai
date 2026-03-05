@@ -127,19 +127,17 @@ safetylens-ai/
 - [ ] **Stripe account + products** — no payment processing configured
 - [ ] **Anthropic API key** — AI features won't work without it
 - [ ] **Resend email** — no transactional email configured
-- [ ] **npm install** — `node_modules` exists (dev server ran) but verify after clone
 - [ ] **End-to-end testing** — no pages tested with real data
 - [ ] **Error handling polish** — basic structure, needs edge cases
 - [ ] **Deployment** — Vercel, env vars, domain
-- [ ] **`.next/` in .gitignore** — build artifacts are not ignored yet (should add)
 
 ---
 
 ## Known Issues / Gotchas
-- `.next/` build folder is NOT in `.gitignore` — add it to avoid bloating the repo
 - `.env.local` IS in `.gitignore` — you'll need to copy it manually between machines or use a secure sync
 - Default git branch was `master` globally; renamed to `main` locally for this repo
 - PowerShell execution policy was set to `RemoteSigned` (CurrentUser scope) to allow scripts
+- `.claude/settings.local.json` has "allow all" permissions — Claude Code won't prompt for approvals
 
 ---
 
@@ -149,31 +147,42 @@ safetylens-ai/
 
 | Field | Value |
 |-------|-------|
-| Date | 2026-03-04 |
-| Location | HOME |
-| Last commit | `905614a` — initial commit: SafetyLens AI project setup |
-| Dev server status | Was running (`npm run dev` in `safetylens-ai/`) |
+| Date | 2026-03-04 (evening) |
+| Location | HOME (desktop) |
+| Last commit | `30acbaf` + end-of-night commit |
+| Dev server status | Stopped — was running but session is over |
 | Errors at close | None (0 compile errors) |
 
 ### What I was working on
-- Initial project scaffolding is complete
-- Set up GitHub repo and first push
-- All source files are written but running against placeholder env vars
+- Full project scaffolding is COMPLETE — all source code written
+- GitHub repo live at https://github.com/carlosreynoso96-ai/safetylens-ai
+- `.gitignore` fixed (`.next/` and `node_modules/` now excluded)
+- `hometowork.md` handoff file created
+- Auto-push watch script (`watch-and-push.ps1`) with power restore built in
+- Claude Code "always allow" permissions configured
 
-### Next steps (pick up here)
-1. Add `.next/` to `.gitignore` to stop tracking build artifacts
-2. Create Supabase project → get real URL + keys → update `.env.local`
-3. Run Supabase migrations (`supabase db push` or paste SQL in dashboard)
-4. Create Stripe account → create 3 products → get keys → update `.env.local`
-5. Get Anthropic API key → update `.env.local`
-6. Test auth flow end-to-end (signup → login → dashboard)
-7. Test photo analysis flow (upload → AI response)
-8. Test coach flow (text + voice)
+### Next steps (pick up here on laptop)
+1. **Clone the repo on laptop:**
+   ```powershell
+   cd ~\Downloads   # or wherever you want
+   git clone https://github.com/carlosreynoso96-ai/safetylens-ai.git SafetyLens
+   cd SafetyLens\safetylens-ai
+   npm install
+   ```
+2. **Copy `.env.local`** from desktop to `SafetyLens\safetylens-ai\.env.local` (it's gitignored)
+3. **Create Supabase project** → get URL + anon key + service role key → paste into `.env.local`
+4. **Run migrations** — paste the 3 SQL files from `supabase/migrations/` into the Supabase SQL editor
+5. **Get Anthropic API key** → paste into `.env.local`
+6. **Create Stripe account** → create 3 products (Starter/Pro/Coach) → paste keys into `.env.local`
+7. **Get Resend API key** → paste into `.env.local`
+8. `npm run dev` → test auth flow → test photo analysis → test coach
+9. Start `.\watch-and-push.ps1` in a separate terminal if you want auto-push
 
 ### Notes for next session
-- The watch-and-push.ps1 script auto-commits when idle for 10 min. Start it in a separate terminal if you want auto-push.
-- If you're at a different machine, you'll need to copy `.env.local` manually — it's gitignored.
-- To share env between home/work securely, consider using `doppler`, `1password cli`, or a private gist.
+- The `.env.local` file has all placeholder keys — just replace the values, don't change the variable names.
+- On laptop, you may need to run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` to allow PowerShell scripts.
+- The watch script also restores power settings when done (sleep/screen/hibernate back to normal).
+- Git user is set globally: `Carlos Reynoso <carlosreynoso96@gmail.com>`
 
 ---
 
@@ -181,4 +190,4 @@ safetylens-ai/
 
 | Date | Location | Summary |
 |------|----------|---------|
-| 2026-03-04 | HOME | Initial scaffolding complete. All pages, components, API routes, hooks, libs, types, and SQL migrations written. Pushed to GitHub. |
+| 2026-03-04 | HOME | Initial scaffolding complete. All pages, components, API routes, hooks, libs, types, SQL migrations written. GitHub repo created + pushed. Set up gitignore, hometowork.md handoff, auto-push script with power management, Claude Code auto-allow. Next: connect Supabase/Stripe/Anthropic on laptop. |
