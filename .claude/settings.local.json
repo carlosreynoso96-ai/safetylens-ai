@@ -4,7 +4,9 @@
       "Bash(npx create-next-app@latest safetylens-ai --typescript --tailwind --eslint --app --src=no --import-alias \"@/*\" --use-npm)",
       "Bash(npx --yes create-next-app@latest safetylens-ai --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --turbopack)",
       "Bash(npm install @supabase/supabase-js @supabase/ssr @anthropic-ai/sdk stripe @stripe/stripe-js resend browser-image-compression)",
-      "Bash(npm install lucide-react clsx)"
+      "Bash(npm install lucide-react clsx)",
+      "Bash(npx next build)",
+      "Bash(npm ls @supabase/supabase-js @supabase/ssr)"
     ]
   }
 }

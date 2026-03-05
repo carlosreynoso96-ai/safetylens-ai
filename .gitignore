@@ -1,1 +1,4 @@
 .env.local
+
+safetylens-ai/.next/
+node_modules/
