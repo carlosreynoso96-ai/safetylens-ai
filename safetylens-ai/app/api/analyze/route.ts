@@ -5,6 +5,9 @@ import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 
 export async function POST(request: NextRequest) {
+  console.log('[DEBUG ENV] ANTHROPIC_API_KEY:', JSON.stringify(process.env.ANTHROPIC_API_KEY))
+  console.log('[DEBUG ENV] NEXT_PUBLIC_SUPABASE_URL:', JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL))
+  console.log('[DEBUG ENV] All env keys with ANTHROPIC:', Object.keys(process.env).filter(k => k.includes('ANTHROPIC')))
   try {
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()

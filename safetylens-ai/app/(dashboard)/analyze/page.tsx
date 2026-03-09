@@ -61,27 +61,44 @@ export default function AnalyzePage() {
 
   // Create audit in Supabase (called once on first photo drop)
   const createAudit = useCallback(async (): Promise<string | null> => {
+    console.log('[DEBUG] createAudit called, user:', !!user, 'userId:', user?.id)
     if (!user) return null
 
-    const { data, error } = await supabase
-      .from('audits')
-      .insert({
-        user_id: user.id,
-        project_id: projectId,
-        audit_type: 'analyze',
-        inspector_name: inspectorName || null,
-        audit_date: auditDate,
-        status: 'draft',
-      })
-      .select('id')
-      .single()
+    console.log('[DEBUG] About to insert audit with:', {
+      user_id: user.id,
+      project_id: projectId,
+      audit_type: 'analyze',
+      inspector_name: inspectorName || null,
+      audit_date: auditDate,
+      status: 'draft',
+    })
 
-    if (error) {
-      console.error('Error creating audit:', error)
+    try {
+      const { data, error } = await supabase
+        .from('audits')
+        .insert({
+          user_id: user.id,
+          project_id: projectId,
+          audit_type: 'analyze',
+          inspector_name: inspectorName || null,
+          audit_date: auditDate,
+          status: 'draft',
+        })
+        .select('id')
+        .single()
+
+      console.log('[DEBUG] Insert result - data:', data, 'error:', error)
+
+      if (error) {
+        console.error('Error creating audit:', error)
+        return null
+      }
+
+      return data.id
+    } catch (err) {
+      console.error('[DEBUG] Insert threw exception:', err)
       return null
     }
-
-    return data.id
   }, [user, supabase, projectId, inspectorName, auditDate])
 
   // Process a single photo
@@ -142,14 +159,17 @@ export default function AnalyzePage() {
 
   // Process the pending queue sequentially
   const processPendingQueue = useCallback(async () => {
+    console.log('[DEBUG] processPendingQueue called, isProcessing:', isProcessingRef.current, 'pendingCount:', pendingQueueRef.current.length)
     if (isProcessingRef.current) return
     isProcessingRef.current = true
 
     try {
       // Ensure we have an audit
       let currentAuditId = auditId
+      console.log('[DEBUG] currentAuditId:', currentAuditId)
       if (!currentAuditId) {
         currentAuditId = await createAudit()
+        console.log('[DEBUG] createAudit returned:', currentAuditId)
         if (!currentAuditId) {
           // Mark all pending as error
           setQueue((prev) =>
@@ -190,6 +210,7 @@ export default function AnalyzePage() {
         status: 'pending' as const,
       }))
 
+      console.log('[DEBUG] handleFilesSelected called, files:', files.length, 'user:', !!user)
       setQueue((prev) => [...prev, ...newItems])
       pendingQueueRef.current.push(...newItems)
 

@@ -1,5 +1,22 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
+let _anthropic: Anthropic | null = null
+
+export function getAnthropicClient(): Anthropic {
+  if (!_anthropic) {
+    // Use SAFETYLENS_ANTHROPIC_KEY to avoid collision with Claude Code's env
+    const apiKey = process.env.SAFETYLENS_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      throw new Error('SAFETYLENS_ANTHROPIC_KEY is not set in environment variables')
+    }
+    _anthropic = new Anthropic({ apiKey })
+  }
+  return _anthropic
+}
+
+// Keep backward compat
+export const anthropic = new Proxy({} as Anthropic, {
+  get(_, prop) {
+    return (getAnthropicClient() as Record<string | symbol, unknown>)[prop]
+  },
 })
