@@ -45,18 +45,16 @@ cd D:\Downloads\SafetyLens
 
 ## Env Keys Status
 
-All keys are **placeholder** in `.env.local` — none are live yet.
-
 | Service | Key set? | Notes |
 |---------|----------|-------|
-| Supabase URL + Anon | NO | Need to create Supabase project |
-| Supabase Service Role | NO | Same |
-| Stripe Secret | NO | Need Stripe account + products |
-| Stripe Publishable | NO | Same |
-| Stripe Webhook Secret | NO | `stripe listen --forward-to localhost:3000/api/stripe/webhook` |
-| Stripe Price IDs (x3) | NO | Create 3 products in Stripe dashboard |
-| Anthropic API Key | NO | https://console.anthropic.com |
-| Resend API Key | NO | https://resend.com |
+| Supabase URL + Anon | ✅ YES | Live project: `lpxqzsudbjovpkydmstv.supabase.co` |
+| Supabase Service Role | ✅ YES | Connected |
+| Stripe Secret | ✅ YES | Live key connected |
+| Stripe Publishable | ✅ YES | Live key connected |
+| Stripe Webhook Secret | ❌ NO | Need to create webhook endpoint in Stripe Dashboard → copy `whsec_...` |
+| Stripe Price IDs (x3) | ✅ YES | Starter/Professional/Coach prices connected |
+| Anthropic API Key | ✅ YES | Connected (+ SAFETYLENS_ANTHROPIC_KEY alias) |
+| Resend API Key | ✅ YES | Connected |
 
 ---
 
@@ -107,27 +105,32 @@ safetylens-ai/
 
 ## What's Built vs What's Left
 
-### DONE (scaffolded, code written)
+### DONE
 - [x] Full Next.js project structure
 - [x] All page routes (auth, dashboard, analyze, audits, coach, projects, settings)
 - [x] All API routes (analyze, audits CRUD, coach, stripe checkout/portal/webhook, usage)
 - [x] All components (UI kit, analyze flow, coach flow, dashboard)
 - [x] Hooks (auth, plan, usage, speech recognition/synthesis)
 - [x] Lib modules (Anthropic client + prompts, Stripe, Supabase client/server/admin)
-- [x] Supabase migration SQL files (schema, RLS policies, storage buckets)
 - [x] TypeScript types
 - [x] Tailwind v4 + globals.css
 - [x] Marketing landing page + nav/footer
 - [x] Git repo + GitHub remote configured
 - [x] Auto-push watch script
+- [x] **Supabase project created** — DB live at `lpxqzsudbjovpkydmstv.supabase.co`
+- [x] **Migrations applied** — all 6 tables exist (profiles, projects, audits, observations, coach_sessions, usage_logs)
+- [x] **Storage bucket** — `audit-photos` bucket created (private)
+- [x] **Stripe account + 3 products** — Starter ($29), Professional ($49), Coach ($89) with real price IDs
+- [x] **Stripe price IDs in .env.local** — all 3 connected
+- [x] **Anthropic API key** — connected (+ SAFETYLENS_ANTHROPIC_KEY alias to avoid Claude Code collision)
+- [x] **Resend API key** — connected
+- [x] **Anthropic client refactored** — lazy init with proxy for backward compat
+- [x] **Debug logging** — added to analyze flow for troubleshooting
 
 ### NOT DONE YET
-- [ ] **Supabase project creation** — no real DB connected
-- [ ] **Run migrations** — SQL files exist but haven't been applied
-- [ ] **Stripe account + products** — no payment processing configured
-- [ ] **Anthropic API key** — AI features won't work without it
-- [ ] **Resend email** — no transactional email configured
-- [ ] **End-to-end testing** — no pages tested with real data
+- [ ] **Stripe webhook secret** — need to create endpoint in Stripe Dashboard, copy `whsec_...` to `.env.local`
+- [ ] **End-to-end testing** — auth flow, photo analysis, coach, payments untested
+- [ ] **Remove debug logging** — clean up console.log statements before production
 - [ ] **Error handling polish** — basic structure, needs edge cases
 - [ ] **Deployment** — Vercel, env vars, domain
 
@@ -147,41 +150,29 @@ safetylens-ai/
 
 | Field | Value |
 |-------|-------|
-| Date | 2026-03-04 (evening) |
-| Location | HOME (desktop) |
-| Last commit | `30acbaf` + end-of-night commit |
-| Dev server status | Stopped — was running but session is over |
-| Errors at close | None (0 compile errors) |
+| Date | 2026-03-10 |
+| Location | LAPTOP |
+| Last commit | `4e80d4a` — debug logging + Anthropic client refactor |
+| Dev server status | Not running |
+| Errors at close | None |
 
-### What I was working on
-- Full project scaffolding is COMPLETE — all source code written
-- GitHub repo live at https://github.com/carlosreynoso96-ai/safetylens-ai
-- `.gitignore` fixed (`.next/` and `node_modules/` now excluded)
-- `hometowork.md` handoff file created
-- Auto-push watch script (`watch-and-push.ps1`) with power restore built in
-- Claude Code "always allow" permissions configured
+### What was done this session
+- Verified all Supabase migrations are applied (6 tables + storage bucket confirmed)
+- Verified Stripe products exist (3 plans with real price IDs)
+- Updated `.env.local` with real Stripe price IDs (were still placeholders)
+- Updated `hometowork.md` handoff doc to reflect actual progress
+- Pushed latest commit to GitHub
 
-### Next steps (pick up here on laptop)
-1. **Clone the repo on laptop:**
-   ```powershell
-   cd ~\Downloads   # or wherever you want
-   git clone https://github.com/carlosreynoso96-ai/safetylens-ai.git SafetyLens
-   cd SafetyLens\safetylens-ai
-   npm install
-   ```
-2. **Copy `.env.local`** from desktop to `SafetyLens\safetylens-ai\.env.local` (it's gitignored)
-3. **Create Supabase project** → get URL + anon key + service role key → paste into `.env.local`
-4. **Run migrations** — paste the 3 SQL files from `supabase/migrations/` into the Supabase SQL editor
-5. **Get Anthropic API key** → paste into `.env.local`
-6. **Create Stripe account** → create 3 products (Starter/Pro/Coach) → paste keys into `.env.local`
-7. **Get Resend API key** → paste into `.env.local`
-8. `npm run dev` → test auth flow → test photo analysis → test coach
-9. Start `.\watch-and-push.ps1` in a separate terminal if you want auto-push
+### Next steps
+1. **Stripe webhook** — go to [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks), create endpoint pointing to `https://your-domain.com/api/stripe/webhook`, copy `whsec_...` to `.env.local`
+2. **End-to-end testing** — `npm run dev` → test auth → test photo analysis → test coach → test billing
+3. **Remove debug logging** — clean up `console.log('[DEBUG]...')` statements before production
+4. **Error handling polish** — edge cases, user-friendly error messages
+5. **Deployment** — Vercel, env vars, custom domain
 
-### Notes for next session
-- The `.env.local` file has all placeholder keys — just replace the values, don't change the variable names.
-- On laptop, you may need to run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` to allow PowerShell scripts.
-- The watch script also restores power settings when done (sleep/screen/hibernate back to normal).
+### Notes
+- `.env.local` now has all real keys EXCEPT `STRIPE_WEBHOOK_SECRET` (still placeholder)
+- Anthropic client uses `SAFETYLENS_ANTHROPIC_KEY` env var to avoid collision with Claude Code's own `ANTHROPIC_API_KEY`
 - Git user is set globally: `Carlos Reynoso <carlosreynoso96@gmail.com>`
 
 ---
@@ -191,3 +182,5 @@ safetylens-ai/
 | Date | Location | Summary |
 |------|----------|---------|
 | 2026-03-04 | HOME | Initial scaffolding complete. All pages, components, API routes, hooks, libs, types, SQL migrations written. GitHub repo created + pushed. Set up gitignore, hometowork.md handoff, auto-push script with power management, Claude Code auto-allow. Next: connect Supabase/Stripe/Anthropic on laptop. |
+| 2026-03-05 | LAPTOP | Connected all services: Supabase project created + migrations applied (6 tables + storage bucket), Stripe account + 3 products created, Anthropic + Resend keys added. Refactored Anthropic client for env key flexibility. Added debug logging to analyze flow. |
+| 2026-03-10 | LAPTOP | Verified all services connected. Updated .env.local with real Stripe price IDs (were still placeholders). Updated handoff doc to reflect actual status. Remaining: Stripe webhook secret, E2E testing, cleanup debug logs, deployment. |
