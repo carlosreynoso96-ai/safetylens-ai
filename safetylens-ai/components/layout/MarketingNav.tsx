@@ -67,7 +67,7 @@ export default function MarketingNav() {
         {/* Desktop CTA buttons */}
         <div className="hidden items-center gap-3 md:flex">
           <Link
-            href="/signin"
+            href="/login"
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             Sign In
@@ -111,7 +111,7 @@ export default function MarketingNav() {
           </nav>
           <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4">
             <Link
-              href="/signin"
+              href="/login"
               onClick={() => setMobileOpen(false)}
               className="rounded-lg border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
