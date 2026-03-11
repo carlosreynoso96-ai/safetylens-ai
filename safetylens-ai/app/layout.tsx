@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     title: "Vorsa AI — AI-Powered Safety Audits for Construction",
     description:
       "Turn jobsite photos into OSHA-cited safety reports in seconds.",
-    url: "https://vorsa.ai",
+    url: "https://getvorsa.ai",
     siteName: "Vorsa AI",
     type: "website",
   },
