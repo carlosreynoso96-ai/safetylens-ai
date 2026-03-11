@@ -19,7 +19,7 @@ export default function MarketingFooter() {
                 <Camera className="h-4 w-4" />
               </div>
               <span className="text-lg font-bold tracking-tight text-gray-900">
-                Safety<span className="text-orange-500">Lens</span>
+                Vor<span className="text-orange-500">sa</span>
                 <span className="ml-1 text-xs font-normal text-gray-400">AI</span>
               </span>
             </Link>
