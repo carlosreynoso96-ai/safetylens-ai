@@ -61,9 +61,38 @@ export async function analyzePhoto(imageBase64: string, mediaType: string = 'ima
   }
 
   try {
-    const result: AnalysisResult = JSON.parse(content.text)
-    return result
-  } catch {
-    throw new Error('Failed to parse AI response as JSON')
+    const raw = JSON.parse(content.text)
+
+    // Validate required fields exist
+    const requiredFields = [
+      'best_guess', 'category', 'osha_standard', 'osha_description',
+      'severity_if_non_compliant', 'compliant_narrative',
+      'non_compliant_narrative', 'non_compliant_corrective_action',
+    ]
+
+    for (const field of requiredFields) {
+      if (!raw[field]) {
+        console.error(`[analyzePhoto] AI response missing required field: ${field}`)
+        throw new Error(`AI response missing required field: ${field}`)
+      }
+    }
+
+    // Normalize best_guess
+    if (!['compliant', 'non_compliant'].includes(raw.best_guess)) {
+      raw.best_guess = 'non_compliant'
+    }
+
+    // Normalize severity
+    const validSeverities = ['Low', 'Medium', 'High', 'Critical']
+    if (!validSeverities.includes(raw.severity_if_non_compliant)) {
+      raw.severity_if_non_compliant = 'Medium'
+    }
+
+    return raw as AnalysisResult
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      throw new Error('Failed to parse AI response as JSON')
+    }
+    throw e
   }
 }

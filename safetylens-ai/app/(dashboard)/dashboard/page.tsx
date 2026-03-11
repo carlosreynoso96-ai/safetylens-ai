@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Audit } from '@/types/audit'
 import { StatsCards } from '@/components/dashboard/StatsCards'
 import { RecentAudits } from '@/components/dashboard/RecentAudits'
 import { UsageMeter } from '@/components/dashboard/UsageMeter'
 import Link from 'next/link'
-import { Camera, Headphones } from 'lucide-react'
+import { Camera, Headphones, AlertTriangle, RefreshCw } from 'lucide-react'
 
 export default function DashboardPage() {
   const [audits, setAudits] = useState<Audit[]>([])
@@ -18,30 +18,37 @@ export default function DashboardPage() {
     criticalCount: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchData() {
+  const fetchData = useCallback(async () => {
+    try {
+      setError(null)
+      setLoading(true)
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
       // Fetch recent audits
-      const { data: auditData } = await supabase
+      const { data: auditData, error: auditErr } = await supabase
         .from('audits')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5)
 
+      if (auditErr) throw auditErr
+
       if (auditData) {
         setAudits(auditData as Audit[])
       }
 
       // Calculate stats from all audits
-      const { data: allAudits } = await supabase
+      const { data: allAudits, error: statsErr } = await supabase
         .from('audits')
         .select('total_observations, compliant_count, critical_count')
         .eq('user_id', user.id)
+
+      if (statsErr) throw statsErr
 
       if (allAudits) {
         setStats({
@@ -51,12 +58,17 @@ export default function DashboardPage() {
           criticalCount: allAudits.reduce((sum, a) => sum + a.critical_count, 0),
         })
       }
-
+    } catch (err) {
+      console.error('Dashboard fetch error:', err)
+      setError('Failed to load dashboard data. Please try again.')
+    } finally {
       setLoading(false)
     }
-
-    fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   if (loading) {
     return (
@@ -67,6 +79,25 @@ export default function DashboardPage() {
           ))}
         </div>
         <div className="bg-white rounded-xl border border-gray-200 h-64" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="bg-white rounded-xl border border-red-200 p-8 max-w-md w-full text-center">
+          <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h3>
+          <p className="text-sm text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        </div>
       </div>
     )
   }

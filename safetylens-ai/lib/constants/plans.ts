@@ -21,7 +21,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   starter: {
     name: 'Starter',
     price: 29,
-    stripe_price_id: process.env.STRIPE_PRICE_STARTER || 'price_STARTER_ID',
+    stripe_price_id: process.env.STRIPE_PRICE_STARTER || null,
     limits: {
       walks_per_month: 20,
       photos_per_walk: 100,
@@ -37,7 +37,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   professional: {
     name: 'Professional',
     price: 49,
-    stripe_price_id: process.env.STRIPE_PRICE_PROFESSIONAL || 'price_PRO_ID',
+    stripe_price_id: process.env.STRIPE_PRICE_PROFESSIONAL || null,
     limits: {
       walks_per_month: -1,
       photos_per_walk: 200,
@@ -53,7 +53,7 @@ export const PLANS: Record<PlanType, PlanDefinition> = {
   coach: {
     name: 'Coach',
     price: 89,
-    stripe_price_id: process.env.STRIPE_PRICE_COACH || 'price_COACH_ID',
+    stripe_price_id: process.env.STRIPE_PRICE_COACH || null,
     limits: {
       walks_per_month: -1,
       photos_per_walk: 200,

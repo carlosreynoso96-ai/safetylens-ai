@@ -4,6 +4,7 @@ import { getCoachResponse } from '@/lib/anthropic/coach'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 import { CoachMessage } from '@/types/coach'
+import { rateLimit, API_LIMITS } from '@/lib/utils/rate-limit'
 
 // Allow up to 60 seconds for AI responses (important for Vercel deployment)
 export const maxDuration = 60
@@ -15,6 +16,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit check
+    const rl = rateLimit(`coach:${user.id}`, API_LIMITS.coach)
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before sending more messages.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+      )
     }
 
     const { messages, session_id } = await request.json() as {

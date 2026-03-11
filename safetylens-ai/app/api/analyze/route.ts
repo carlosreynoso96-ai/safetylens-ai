@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { analyzePhoto } from '@/lib/anthropic/analyze'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
+import { rateLimit, API_LIMITS } from '@/lib/utils/rate-limit'
 
 // Allow up to 60 seconds for AI analysis (important for Vercel deployment)
 export const maxDuration = 60
@@ -14,6 +15,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit check
+    const rl = rateLimit(`analyze:${user.id}`, API_LIMITS.analyze)
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before analyzing more photos.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+      )
     }
 
     const { image_base64, audit_id, media_type } = await request.json()

@@ -278,7 +278,10 @@ export function generatePDFContent(
 
 export function printPDF(html: string) {
   const printWindow = window.open('', '_blank')
-  if (!printWindow) return
+  if (!printWindow) {
+    alert('Unable to open print preview. Please allow popups for this site and try again.')
+    return
+  }
   printWindow.document.write(html)
   printWindow.document.close()
   printWindow.focus()

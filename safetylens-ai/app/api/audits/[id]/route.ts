@@ -59,7 +59,20 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const updates = await request.json()
+    const rawBody = await request.json()
+
+    // Whitelist allowed update fields to prevent overwriting protected fields
+    const ALLOWED_FIELDS = ['status', 'inspector_name', 'project_id', 'notes', 'total_observations', 'compliant_count', 'critical_count']
+    const updates: Record<string, unknown> = {}
+    for (const field of ALLOWED_FIELDS) {
+      if (rawBody[field] !== undefined) {
+        updates[field] = rawBody[field]
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
 
     // Verify ownership first
     const { data: existing } = await supabase
