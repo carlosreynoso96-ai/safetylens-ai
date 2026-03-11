@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         project_id: project_id || null,
         audit_type,
         inspector_name: inspector_name || null,
-        status: 'in_progress',
+        status: 'draft',
         total_observations: 0,
         compliant_count: 0,
         non_compliant_count: 0,

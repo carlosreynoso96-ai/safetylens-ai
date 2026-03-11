@@ -72,8 +72,8 @@ export function generatePDFContent(
       <title>SafetyLens AI - Audit Report</title>
       <style>
         @page {
-          size: landscape;
-          margin: 0.4in 0.5in;
+          size: portrait;
+          margin: 0.5in;
         }
 
         * { box-sizing: border-box; }

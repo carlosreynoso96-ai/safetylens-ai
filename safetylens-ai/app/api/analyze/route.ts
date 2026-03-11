@@ -28,12 +28,25 @@ export async function POST(request: NextRequest) {
     // Check plan limits
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan, plan_status, walks_used_this_month, trial_ends_at')
+      .select('plan, plan_status, walks_used_this_month, walks_reset_at, trial_ends_at')
       .eq('id', user.id)
       .single()
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Inline monthly reset: if past the reset date, zero the counter
+    let walksUsed = profile.walks_used_this_month
+    if (profile.walks_reset_at && new Date(profile.walks_reset_at) <= new Date()) {
+      const nextReset = new Date()
+      nextReset.setMonth(nextReset.getMonth() + 1, 1)
+      nextReset.setHours(0, 0, 0, 0)
+      await supabase
+        .from('profiles')
+        .update({ walks_used_this_month: 0, walks_reset_at: nextReset.toISOString() })
+        .eq('id', user.id)
+      walksUsed = 0
     }
 
     const plan = profile.plan as PlanType
@@ -53,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Check walks limit
     if (limits && limits.walks_per_month !== -1) {
-      if (profile.walks_used_this_month >= limits.walks_per_month) {
+      if (walksUsed >= limits.walks_per_month) {
         return NextResponse.json(
           { error: 'Monthly walk limit reached. Please upgrade your plan.' },
           { status: 403 }

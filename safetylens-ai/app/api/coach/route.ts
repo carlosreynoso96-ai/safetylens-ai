@@ -5,6 +5,9 @@ import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 import { CoachMessage } from '@/types/coach'
 
+// Allow up to 60 seconds for AI responses (important for Vercel deployment)
+export const maxDuration = 60
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -45,6 +48,26 @@ export async function POST(request: NextRequest) {
         { error: 'Coach is not available on your current plan. Please upgrade.' },
         { status: 403 }
       )
+    }
+
+    // Enforce coach sessions per month limit
+    if (limits.coach_sessions_per_month !== -1) {
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
+
+      const { count } = await supabase
+        .from('coach_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString())
+
+      if ((count || 0) >= limits.coach_sessions_per_month) {
+        return NextResponse.json(
+          { error: `Monthly coach session limit reached (${limits.coach_sessions_per_month}). Please upgrade your plan.` },
+          { status: 403 }
+        )
+      }
     }
 
     // Get AI response

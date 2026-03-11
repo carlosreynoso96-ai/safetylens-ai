@@ -5,18 +5,21 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { compressImage, fileToBase64 } from '@/lib/utils/compress-image'
 import type { Observation, Project, PhotoQueueItem } from '@/types/audit'
+import { useRouter } from 'next/navigation'
 import { PhotoDropZone } from '@/components/analyze/PhotoDropZone'
 import { PhotoQueue } from '@/components/analyze/PhotoQueue'
 import { ObservationList } from '@/components/analyze/ObservationList'
 import { ExportBar } from '@/components/analyze/ExportBar'
 import { AuditHeader } from '@/components/analyze/AuditHeader'
+import { CheckCircle } from 'lucide-react'
 
 const FETCH_TIMEOUT_MS = 90_000 // 90 seconds — generous for AI vision calls
 const MAX_RETRIES = 2
-const CONCURRENCY = 3 // Process 3 photos simultaneously
+const CONCURRENCY = 5 // Process 5 photos simultaneously
 
 export default function AnalyzePage() {
   const { user, profile } = useAuth()
+  const router = useRouter()
   const supabase = createClient()
 
   // Audit state
@@ -97,6 +100,19 @@ export default function AnalyzePage() {
       if (error) {
         console.error('Error creating audit:', error)
         return null
+      }
+
+      // Increment walks_used_this_month (best-effort from client; server enforces limits)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('walks_used_this_month')
+        .eq('id', user.id)
+        .single()
+      if (profileData) {
+        await supabase
+          .from('profiles')
+          .update({ walks_used_this_month: (profileData.walks_used_this_month || 0) + 1 })
+          .eq('id', user.id)
       }
 
       return data.id
@@ -404,6 +420,31 @@ export default function AnalyzePage() {
     [auditId, supabase],
   )
 
+  // Audit status
+  const [auditStatus, setAuditStatus] = useState<'draft' | 'completed'>('draft')
+
+  // Derived: is the queue fully done?
+  const isQueueDone = queue.length > 0 && pendingQueueRef.current.length === 0
+    && queue.every((q) => q.status === 'complete' || q.status === 'error')
+  const hasObservations = observations.length > 0
+
+  // Complete / finalize the audit
+  const handleCompleteAudit = useCallback(async () => {
+    if (!auditId) return
+    const { error } = await supabase
+      .from('audits')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', auditId)
+    if (!error) {
+      setAuditStatus('completed')
+    }
+  }, [auditId, supabase])
+
+  // Navigate to the saved audit detail page
+  const handleViewAudit = useCallback(() => {
+    if (auditId) router.push(`/audits/${auditId}`)
+  }, [auditId, router])
+
   // Resolve project name for export
   const projectName = projects.find((p) => p.id === projectId)?.name
 
@@ -444,6 +485,47 @@ export default function AnalyzePage() {
         onUpdate={handleObservationUpdate}
         onDelete={handleObservationDelete}
       />
+
+      {/* Complete Audit Banner */}
+      {auditId && hasObservations && isQueueDone && auditStatus === 'draft' && (
+        <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <div>
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">
+              All photos processed — {observations.length} observation{observations.length === 1 ? '' : 's'} ready
+            </p>
+            <p className="mt-0.5 text-xs text-green-600 dark:text-green-400">
+              Finalize this audit to mark it as complete, or keep adding photos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCompleteAudit}
+            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors"
+          >
+            <CheckCircle size={16} />
+            Complete Audit
+          </button>
+        </div>
+      )}
+
+      {/* Completed confirmation */}
+      {auditStatus === 'completed' && (
+        <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <div className="flex items-center gap-2">
+            <CheckCircle size={20} className="text-green-600" />
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">
+              Audit completed successfully
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleViewAudit}
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"
+          >
+            View Audit
+          </button>
+        </div>
+      )}
 
       {/* Export Bar (sticky footer) */}
       <ExportBar

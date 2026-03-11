@@ -7,12 +7,25 @@ import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 import Stripe from 'stripe'
 
+// Server-side price ID mapping — env vars are only available server-side
+const PRICE_ID_TO_PLAN: Record<string, PlanType> = {
+  [process.env.STRIPE_PRICE_STARTER || '']: 'starter',
+  [process.env.STRIPE_PRICE_PROFESSIONAL || '']: 'professional',
+  [process.env.STRIPE_PRICE_COACH || '']: 'coach',
+}
+
 function getPlanFromPriceId(priceId: string): PlanType {
+  const plan = PRICE_ID_TO_PLAN[priceId]
+  if (plan) return plan
+
+  // Fallback: check PLANS object (may have placeholders in client builds)
   for (const [planKey, planDef] of Object.entries(PLANS)) {
     if (planDef.stripe_price_id === priceId) {
       return planKey as PlanType
     }
   }
+
+  console.error(`[Stripe Webhook] Unknown price ID: ${priceId} — defaulting to free_trial. Check env vars.`)
   return 'free_trial'
 }
 

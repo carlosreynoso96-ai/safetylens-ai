@@ -69,6 +69,21 @@ export default function AuditDetailPage() {
     setLoading(false)
   }
 
+  // Recalculate audit aggregate counts from current observations
+  async function recalcAuditCounts(updatedObs: Observation[]) {
+    if (!audit) return
+    const supabase = createClient()
+    const counts = {
+      total_observations: updatedObs.length,
+      compliant_count: updatedObs.filter((o) => o.compliance === 'compliant').length,
+      non_compliant_count: updatedObs.filter((o) => o.compliance !== 'compliant').length,
+      critical_count: updatedObs.filter((o) => o.severity === 'Critical').length,
+      updated_at: new Date().toISOString(),
+    }
+    await supabase.from('audits').update(counts).eq('id', audit.id)
+    setAudit((prev) => prev ? { ...prev, ...counts } as Audit : prev)
+  }
+
   async function handleToggleCompliance(obs: Observation) {
     const supabase = createClient()
     const newCompliance = obs.compliance === 'compliant' ? 'non_compliant' : 'compliant'
@@ -92,19 +107,19 @@ export default function AuditDetailPage() {
       })
       .eq('id', obs.id)
 
-    setObservations((prev) =>
-      prev.map((o) =>
-        o.id === obs.id
-          ? {
-              ...o,
-              compliance: newCompliance as 'compliant' | 'non_compliant',
-              narrative: newNarrative,
-              corrective_action: newCorrective,
-              severity: (newSeverity || 'Medium') as Observation['severity'],
-            }
-          : o
-      )
+    const updatedObs = observations.map((o) =>
+      o.id === obs.id
+        ? {
+            ...o,
+            compliance: newCompliance as 'compliant' | 'non_compliant',
+            narrative: newNarrative,
+            corrective_action: newCorrective,
+            severity: (newSeverity || 'Medium') as Observation['severity'],
+          }
+        : o
     )
+    setObservations(updatedObs)
+    await recalcAuditCounts(updatedObs)
   }
 
   async function handleSaveEdit(obsId: string) {
@@ -114,18 +129,20 @@ export default function AuditDetailPage() {
       .update({ ...editData, updated_at: new Date().toISOString() })
       .eq('id', obsId)
 
-    setObservations((prev) =>
-      prev.map((o) => (o.id === obsId ? { ...o, ...editData } as Observation : o))
-    )
+    const updatedObs = observations.map((o) => (o.id === obsId ? { ...o, ...editData } as Observation : o))
+    setObservations(updatedObs)
     setEditingId(null)
     setEditData({})
+    await recalcAuditCounts(updatedObs)
   }
 
   async function handleDelete(obsId: string) {
     if (!confirm('Delete this observation?')) return
     const supabase = createClient()
     await supabase.from('observations').delete().eq('id', obsId)
-    setObservations((prev) => prev.filter((o) => o.id !== obsId))
+    const updatedObs = observations.filter((o) => o.id !== obsId)
+    setObservations(updatedObs)
+    await recalcAuditCounts(updatedObs)
   }
 
   function handleExportCSV() {
@@ -141,6 +158,18 @@ export default function AuditDetailPage() {
       auditDate: audit.audit_date,
     })
     printPDF(html)
+  }
+
+  async function handleMarkCompleted() {
+    if (!audit) return
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('audits')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', audit.id)
+    if (!error) {
+      setAudit({ ...audit, status: 'completed' } as Audit)
+    }
   }
 
   if (loading) {
@@ -193,6 +222,15 @@ export default function AuditDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {audit.status === 'draft' && observations.length > 0 && (
+            <button
+              onClick={handleMarkCompleted}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Complete
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             disabled={observations.length === 0}
