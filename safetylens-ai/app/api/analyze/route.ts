@@ -150,6 +150,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Upload photo to Supabase Storage (best-effort — don't fail the request if storage fails)
+    try {
+      const ext = (media_type || 'image/jpeg').split('/')[1] || 'jpeg'
+      const storagePath = `${user.id}/${audit_id}/${savedObs.id}.${ext}`
+      const buffer = Buffer.from(image_base64, 'base64')
+
+      const { error: uploadError } = await supabase.storage
+        .from('audit-photos')
+        .upload(storagePath, buffer, {
+          contentType: media_type || 'image/jpeg',
+          upsert: false,
+        })
+
+      if (!uploadError) {
+        // Generate signed URL (valid for 1 year)
+        const { data: signedData } = await supabase.storage
+          .from('audit-photos')
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 365)
+
+        if (signedData?.signedUrl) {
+          await supabase
+            .from('observations')
+            .update({ photo_url: signedData.signedUrl })
+            .eq('id', savedObs.id)
+
+          // Include the photo_url in the response
+          savedObs.photo_url = signedData.signedUrl
+        }
+      } else {
+        console.error('Photo upload failed (non-fatal):', uploadError.message)
+      }
+    } catch (uploadErr) {
+      console.error('Photo storage error (non-fatal):', uploadErr)
+    }
+
     // Update audit counts
     const { data: allObs } = await supabase
       .from('observations')

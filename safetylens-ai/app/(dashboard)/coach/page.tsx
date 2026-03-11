@@ -5,17 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import { CoachMessage, CoachObservation } from '@/types/coach'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+import { usePlan } from '@/hooks/usePlan'
 import { CoachChat } from '@/components/coach/CoachChat'
 import { VoiceButton } from '@/components/coach/VoiceButton'
 import { TextInput } from '@/components/coach/TextInput'
 import { ObservationLog } from '@/components/coach/ObservationLog'
 import { WalkStartScreen } from '@/components/coach/WalkStartScreen'
 import { StatusIndicator } from '@/components/coach/StatusIndicator'
-import { ClipboardList, X, Square } from 'lucide-react'
+import { ClipboardList, X, Square, Lock } from 'lucide-react'
 
 type SessionState = 'start' | 'active' | 'ended'
 
 export default function CoachPage() {
+  const { canUseCoach, loading: planLoading, plan } = usePlan()
   const [sessionState, setSessionState] = useState<SessionState>('start')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [auditId, setAuditId] = useState<string | null>(null)
@@ -47,49 +49,59 @@ export default function CoachPage() {
 
   async function handleStartWalk(projectId: string | null, inspectorName: string) {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    // Create audit
-    const { data: audit } = await supabase
-      .from('audits')
-      .insert({
-        user_id: user.id,
-        project_id: projectId,
-        audit_type: 'coach',
-        inspector_name: inspectorName || null,
-        status: 'draft',
+    try {
+      // Create audit via centralized API (handles walk counting & validation)
+      const res = await fetch('/api/audits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId || null,
+          audit_type: 'coach',
+          inspector_name: inspectorName || null,
+        }),
       })
-      .select()
-      .single()
 
-    if (!audit) return
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Failed to create audit' }))
+        console.error('Failed to create coach audit:', errData.error)
+        return
+      }
 
-    // Create coach session
-    const { data: session } = await supabase
-      .from('coach_sessions')
-      .insert({
+      const { audit } = await res.json()
+      if (!audit) return
+
+      // Create coach session
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: session } = await supabase
+        .from('coach_sessions')
+        .insert({
+          audit_id: audit.id,
+          user_id: user.id,
+          messages: [],
+        })
+        .select()
+        .single()
+
+      if (!session) return
+
+      // Log usage
+      await supabase.from('usage_logs').insert({
+        user_id: user.id,
+        action: 'coach_walk',
         audit_id: audit.id,
-        user_id: user.id,
-        messages: [],
       })
-      .select()
-      .single()
 
-    if (!session) return
-
-    // Log usage
-    await supabase.from('usage_logs').insert({
-      user_id: user.id,
-      action: 'coach_walk',
-      audit_id: audit.id,
-    })
-
-    setAuditId(audit.id)
-    setSessionId(session.id)
-    setSessionState('active')
-    setMessages([])
-    setObservations([])
+      setAuditId(audit.id)
+      setSessionId(session.id)
+      setSessionState('active')
+      setMessages([])
+      setObservations([])
+    } catch (error) {
+      console.error('Error starting coach walk:', error)
+    }
   }
 
   const handleSendMessage = useCallback(
@@ -211,6 +223,30 @@ export default function CoachPage() {
 
     setIsProcessing(false)
     setSessionState('ended')
+  }
+
+  // Show plan gate if coach is not available on the user's plan
+  if (!planLoading && !canUseCoach) {
+    return (
+      <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="max-w-md text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+            <Lock className="w-8 h-8 text-orange-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Safety Coach Not Available</h2>
+          <p className="text-sm text-gray-600">
+            The AI Safety Coach is not included in your current <span className="font-medium capitalize">{plan.replace('_', ' ')}</span> plan.
+            Upgrade to the Coach or Enterprise plan to unlock voice-guided safety walks.
+          </p>
+          <a
+            href="/settings"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+          >
+            Upgrade Plan
+          </a>
+        </div>
+      </div>
+    )
   }
 
   if (sessionState === 'start') {

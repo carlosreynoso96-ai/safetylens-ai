@@ -79,48 +79,32 @@ export default function AnalyzePage() {
     fetchProjects()
   }, [user, supabase])
 
-  // Create audit in Supabase (called once on first photo drop)
+  // Create audit via centralized API (handles walk counting & validation server-side)
   const createAudit = useCallback(async (): Promise<string | null> => {
-    if (!user) return null
-
     try {
-      const { data, error } = await supabase
-        .from('audits')
-        .insert({
-          user_id: user.id,
-          project_id: projectId,
+      const res = await fetch('/api/audits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId || null,
           audit_type: 'analyze',
           inspector_name: inspectorName || null,
-          audit_date: auditDate,
-          status: 'draft',
-        })
-        .select('id')
-        .single()
+        }),
+      })
 
-      if (error) {
-        console.error('Error creating audit:', error)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Failed to create audit' }))
+        console.error('Error creating audit:', errData.error)
         return null
       }
 
-      // Increment walks_used_this_month (best-effort from client; server enforces limits)
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('walks_used_this_month')
-        .eq('id', user.id)
-        .single()
-      if (profileData) {
-        await supabase
-          .from('profiles')
-          .update({ walks_used_this_month: (profileData.walks_used_this_month || 0) + 1 })
-          .eq('id', user.id)
-      }
-
-      return data.id
+      const { audit } = await res.json()
+      return audit?.id || null
     } catch (err) {
       console.error('Error creating audit:', err)
       return null
     }
-  }, [user, supabase, projectId, inspectorName, auditDate])
+  }, [projectId, inspectorName])
 
   // Fetch with timeout using AbortController
   const fetchWithTimeout = useCallback(
