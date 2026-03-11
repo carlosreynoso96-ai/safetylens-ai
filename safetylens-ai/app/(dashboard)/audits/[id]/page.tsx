@@ -148,7 +148,7 @@ export default function AuditDetailPage() {
   function handleExportCSV() {
     if (!audit) return
     const csv = generateCSV(observations, audit.audit_date)
-    downloadCSV(csv, `safetylens-audit-${audit.audit_date}.csv`)
+    downloadCSV(csv, `vorsa-audit-${audit.audit_date}.csv`)
   }
 
   function handleExportPDF() {

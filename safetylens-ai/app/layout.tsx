@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SafetyLens AI — AI-Powered Safety Audits for Construction",
+  title: "Vorsa AI — AI-Powered Safety Audits for Construction",
   description:
     "Turn jobsite photos into OSHA-cited safety reports in seconds. Walk with an AI safety coach who guides you in real time. Built for construction professionals.",
   keywords: [
@@ -21,16 +21,16 @@ export const metadata: Metadata = {
     "safety walk",
   ],
   openGraph: {
-    title: "SafetyLens AI — AI-Powered Safety Audits for Construction",
+    title: "Vorsa AI — AI-Powered Safety Audits for Construction",
     description:
       "Turn jobsite photos into OSHA-cited safety reports in seconds.",
-    url: "https://safetylens.ai",
-    siteName: "SafetyLens AI",
+    url: "https://vorsa.ai",
+    siteName: "Vorsa AI",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SafetyLens AI",
+    title: "Vorsa AI",
     description:
       "Turn jobsite photos into OSHA-cited safety reports in seconds.",
   },

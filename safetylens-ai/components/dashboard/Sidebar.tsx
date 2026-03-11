@@ -74,7 +74,7 @@ export function Sidebar() {
                 <Camera className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg text-gray-900">
-                Safety<span className="text-orange-500">Lens</span>
+                Vor<span className="text-orange-500">sa</span>
               </span>
             </Link>
           )}

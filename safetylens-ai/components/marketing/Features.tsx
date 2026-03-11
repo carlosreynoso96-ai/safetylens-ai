@@ -13,7 +13,7 @@ import {
 
 const features = [
   {
-    title: 'SafetyLens Analyze',
+    title: 'Vorsa Analyze',
     icon: Camera,
     color: 'orange' as const,
     description:
@@ -26,7 +26,7 @@ const features = [
     ],
   },
   {
-    title: 'SafetyLens Coach',
+    title: 'Vorsa Coach',
     icon: Headphones,
     color: 'blue' as const,
     description:
@@ -73,7 +73,7 @@ export default function Features() {
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-gray-600">
             Whether you prefer to analyze photos at your desk or walk the site with
-            an AI companion, SafetyLens has you covered.
+            an AI companion, Vorsa has you covered.
           </p>
         </div>
 

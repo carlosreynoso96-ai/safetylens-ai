@@ -8,7 +8,7 @@ export default function AuthLayout({
       <div className="w-full max-w-md">
         {/* Branding */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-500">SafetyLens AI</h1>
+          <h1 className="text-3xl font-bold text-orange-500">Vorsa AI</h1>
           <p className="mt-2 text-sm text-gray-500">
             AI-powered workplace safety platform
           </p>

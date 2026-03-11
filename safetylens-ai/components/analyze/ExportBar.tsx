@@ -29,7 +29,7 @@ function ExportBar({
 
     const csv = generateCSV(observations, auditDate)
     const dateStr = auditDate.replace(/-/g, '')
-    const filename = `safetylens-audit-${dateStr}.csv`
+    const filename = `vorsa-audit-${dateStr}.csv`
     downloadCSV(csv, filename)
   }, [observations, auditDate, isDisabled])
 

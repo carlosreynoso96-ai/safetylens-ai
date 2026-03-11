@@ -4,10 +4,10 @@ let _anthropic: Anthropic | null = null
 
 export function getAnthropicClient(): Anthropic {
   if (!_anthropic) {
-    // Use SAFETYLENS_ANTHROPIC_KEY to avoid collision with Claude Code's env
-    const apiKey = process.env.SAFETYLENS_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
+    // Use VORSA_ANTHROPIC_KEY to avoid collision with Claude Code's env
+    const apiKey = process.env.VORSA_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      throw new Error('SAFETYLENS_ANTHROPIC_KEY is not set in environment variables')
+      throw new Error('VORSA_ANTHROPIC_KEY is not set in environment variables')
     }
     _anthropic = new Anthropic({
       apiKey,

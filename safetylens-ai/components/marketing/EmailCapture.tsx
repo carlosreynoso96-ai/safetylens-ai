@@ -21,7 +21,7 @@ export default function EmailCapture() {
               Ready to Transform Your Safety Program?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-orange-100">
-              Join construction teams already using SafetyLens to run faster, smarter
+              Join construction teams already using Vorsa to run faster, smarter
               safety walks with AI-powered analysis and coaching.
             </p>
 

@@ -204,7 +204,7 @@ export default function BillingPage() {
           Custom pricing for teams. Unlimited everything, dedicated support.
         </p>
         <a
-          href="mailto:sales@safetylens.ai"
+          href="mailto:sales@vorsa.ai"
           className="text-sm text-orange-600 hover:text-orange-700 font-medium"
         >
           Contact Sales

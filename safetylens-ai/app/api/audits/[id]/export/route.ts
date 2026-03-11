@@ -55,7 +55,7 @@ export async function GET(
 
     if (format === 'csv') {
       const csv = generateCSV(observations || [], auditDate)
-      const filename = `safetylens-audit-${id.slice(0, 8)}-${auditDate.replace(/\//g, '-')}.csv`
+      const filename = `vorsa-audit-${id.slice(0, 8)}-${auditDate.replace(/\//g, '-')}.csv`
 
       return new NextResponse(csv, {
         status: 200,

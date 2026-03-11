@@ -36,7 +36,7 @@ export default function BeforeAfter() {
             From Paperwork to AI-Powered Safety
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-gray-600">
-            See how SafetyLens replaces outdated manual processes with intelligent
+            See how Vorsa replaces outdated manual processes with intelligent
             automation.
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function BeforeAfter() {
                   After
                 </span>
                 <h3 className="mt-1 text-lg font-bold text-gray-900">
-                  The SafetyLens Way
+                  The Vorsa Way
                 </h3>
               </div>
             </div>

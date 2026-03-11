@@ -3,7 +3,7 @@ import PricingTable from '@/components/marketing/PricingTable'
 import EmailCapture from '@/components/marketing/EmailCapture'
 
 export const metadata: Metadata = {
-  title: 'Pricing — SafetyLens AI',
+  title: 'Pricing — Vorsa AI',
   description:
     'Simple, transparent pricing for AI-powered construction safety. Start with a 14-day free trial. No credit card required.',
 }
