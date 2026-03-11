@@ -4,6 +4,9 @@ import { analyzePhoto } from '@/lib/anthropic/analyze'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 
+// Allow up to 60 seconds for AI analysis (important for Vercel deployment)
+export const maxDuration = 60
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -53,6 +56,24 @@ export async function POST(request: NextRequest) {
       if (profile.walks_used_this_month >= limits.walks_per_month) {
         return NextResponse.json(
           { error: 'Monthly walk limit reached. Please upgrade your plan.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Enforce photos_per_walk limit
+    if (limits && limits.photos_per_walk !== -1) {
+      const { count } = await supabase
+        .from('observations')
+        .select('*', { count: 'exact', head: true })
+        .eq('audit_id', audit_id)
+
+      if ((count || 0) >= limits.photos_per_walk) {
+        return NextResponse.json(
+          {
+            error: `Photo limit reached for this audit (${limits.photos_per_walk} photos). Please upgrade your plan for more.`,
+            code: 'PHOTOS_LIMIT_REACHED',
+          },
           { status: 403 }
         )
       }
@@ -145,8 +166,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ observation: savedObs })
   } catch (error) {
     console.error('Analysis error:', error)
+
+    // Return more specific error messages
+    const message = error instanceof Error ? error.message : 'Unknown error'
+
+    if (message.includes('timeout') || message.includes('Timeout')) {
+      return NextResponse.json(
+        { error: 'Analysis timed out. Please try again.', code: 'TIMEOUT', retryable: true },
+        { status: 504 }
+      )
+    }
+
+    if (message.includes('rate') || message.includes('429')) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.', code: 'RATE_LIMITED', retryable: true },
+        { status: 429 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to analyze photo' },
+      { error: 'Failed to analyze photo. Please try again.', retryable: true },
       { status: 500 }
     )
   }

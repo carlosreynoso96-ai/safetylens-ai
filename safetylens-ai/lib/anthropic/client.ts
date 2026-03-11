@@ -9,7 +9,11 @@ export function getAnthropicClient(): Anthropic {
     if (!apiKey) {
       throw new Error('SAFETYLENS_ANTHROPIC_KEY is not set in environment variables')
     }
-    _anthropic = new Anthropic({ apiKey })
+    _anthropic = new Anthropic({
+      apiKey,
+      maxRetries: 3,    // Auto-retry 429, 500, 502, 503
+      timeout: 60_000,  // 60-second timeout per request
+    })
   }
   return _anthropic
 }
@@ -17,6 +21,6 @@ export function getAnthropicClient(): Anthropic {
 // Keep backward compat
 export const anthropic = new Proxy({} as Anthropic, {
   get(_, prop) {
-    return (getAnthropicClient() as Record<string | symbol, unknown>)[prop]
+    return (getAnthropicClient() as unknown as Record<string | symbol, unknown>)[prop]
   },
 })

@@ -11,7 +11,9 @@ import { ObservationList } from '@/components/analyze/ObservationList'
 import { ExportBar } from '@/components/analyze/ExportBar'
 import { AuditHeader } from '@/components/analyze/AuditHeader'
 
-const DELAY_BETWEEN_CALLS_MS = 1500
+const FETCH_TIMEOUT_MS = 90_000 // 90 seconds — generous for AI vision calls
+const MAX_RETRIES = 2
+const CONCURRENCY = 3 // Process 3 photos simultaneously
 
 export default function AnalyzePage() {
   const { user, profile } = useAuth()
@@ -32,12 +34,27 @@ export default function AnalyzePage() {
   const isProcessingRef = useRef(false)
   const pendingQueueRef = useRef<PhotoQueueItem[]>([])
 
+  // Track blob URLs for cleanup
+  const blobUrlsRef = useRef<Set<string>>(new Set())
+
+  // Store base64 image data for PDF export (observationId -> data URL)
+  const observationImagesRef = useRef<Record<string, string>>({})
+
   // Set inspector name once profile loads
   useEffect(() => {
     if (profile?.full_name && !inspectorName) {
       setInspectorName(profile.full_name)
     }
   }, [profile, inspectorName])
+
+  // Clean up all blob URLs on unmount
+  useEffect(() => {
+    const urls = blobUrlsRef.current
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url))
+      urls.clear()
+    }
+  }, [])
 
   // Fetch user's projects
   useEffect(() => {
@@ -89,7 +106,31 @@ export default function AnalyzePage() {
     }
   }, [user, supabase, projectId, inspectorName, auditDate])
 
-  // Process a single photo
+  // Fetch with timeout using AbortController
+  const fetchWithTimeout = useCallback(
+    async (url: string, options: RequestInit, timeoutMs: number = FETCH_TIMEOUT_MS): Promise<Response> => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        })
+        return response
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          throw new Error('Request timed out. The image may be too complex — please try again.')
+        }
+        throw err
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    },
+    [],
+  )
+
+  // Process a single photo (with retry for transient errors)
   const processPhoto = useCallback(
     async (item: PhotoQueueItem, currentAuditId: string) => {
       // Mark as processing
@@ -97,55 +138,96 @@ export default function AnalyzePage() {
         prev.map((q) => (q.id === item.id ? { ...q, status: 'processing' as const } : q)),
       )
 
-      try {
-        // Compress the image
-        const compressed = await compressImage(item.file)
-        const base64 = await fileToBase64(compressed)
+      let lastError = ''
 
-        // Determine media type
-        const mediaType = compressed.type || 'image/jpeg'
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          // Compress the image
+          const compressed = await compressImage(item.file)
+          const base64 = await fileToBase64(compressed)
 
-        // Call the API
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_base64: base64,
-            audit_id: currentAuditId,
-            media_type: mediaType,
-          }),
-        })
+          // Determine media type
+          const mediaType = compressed.type || 'image/jpeg'
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: 'Analysis failed' }))
-          throw new Error(errData.error || `HTTP ${res.status}`)
+          // Call the API with timeout
+          const res = await fetchWithTimeout('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_base64: base64,
+              audit_id: currentAuditId,
+              media_type: mediaType,
+            }),
+          })
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: 'Analysis failed', retryable: false }))
+
+            // Don't retry non-retryable errors (403 plan limits, 401 auth, 400 bad request)
+            if (res.status === 403 || res.status === 401 || res.status === 400) {
+              throw new Error(errData.error || `HTTP ${res.status}`)
+            }
+
+            // Retry transient errors (429, 500, 502, 503, 504)
+            if (attempt < MAX_RETRIES && (errData.retryable || res.status >= 500 || res.status === 429)) {
+              lastError = errData.error || `HTTP ${res.status}`
+              const delay = (attempt + 1) * 3000 // 3s, 6s
+              await new Promise((resolve) => setTimeout(resolve, delay))
+              continue
+            }
+
+            throw new Error(errData.error || `HTTP ${res.status}`)
+          }
+
+          const data = await res.json()
+          const observation = data.observation as Observation
+
+          // Store base64 image for PDF export
+          observationImagesRef.current[observation.id] = `data:${mediaType};base64,${base64}`
+
+          // Mark as complete and revoke blob URL to free memory
+          setQueue((prev) =>
+            prev.map((q) => {
+              if (q.id === item.id) {
+                URL.revokeObjectURL(q.preview)
+                blobUrlsRef.current.delete(q.preview)
+                return { ...q, status: 'complete' as const }
+              }
+              return q
+            }),
+          )
+
+          // Add to observations
+          setObservations((prev) => [...prev, observation])
+          return // Success — exit retry loop
+
+        } catch (err) {
+          lastError = err instanceof Error ? err.message : 'Unknown error'
+
+          // If this was our last attempt, or it's a non-retryable error, fail
+          if (attempt >= MAX_RETRIES || lastError.includes('limit') || lastError.includes('Unauthorized') || lastError.includes('expired')) {
+            break
+          }
+
+          // Wait before retrying
+          const delay = (attempt + 1) * 3000
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
-
-        const data = await res.json()
-        const observation = data.observation as Observation
-
-        // Mark as complete
-        setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: 'complete' as const } : q)),
-        )
-
-        // Add to observations
-        setObservations((prev) => [...prev, observation])
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        setQueue((prev) =>
-          prev.map((q) =>
-            q.id === item.id
-              ? { ...q, status: 'error' as const, error: message }
-              : q,
-          ),
-        )
       }
+
+      // All attempts failed
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === item.id
+            ? { ...q, status: 'error' as const, error: lastError }
+            : q,
+        ),
+      )
     },
-    [],
+    [fetchWithTimeout],
   )
 
-  // Process the pending queue sequentially
+  // Process the pending queue with N concurrent workers
   const processPendingQueue = useCallback(async () => {
     if (isProcessingRef.current) return
     isProcessingRef.current = true
@@ -170,16 +252,18 @@ export default function AnalyzePage() {
         setAuditId(currentAuditId)
       }
 
-      // Process each pending item
-      while (pendingQueueRef.current.length > 0) {
-        const item = pendingQueueRef.current.shift()!
-        await processPhoto(item, currentAuditId)
-
-        // Delay between calls to avoid rate limiting
-        if (pendingQueueRef.current.length > 0) {
-          await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_CALLS_MS))
+      // Worker function — each pulls items from the shared queue until empty
+      const worker = async () => {
+        while (pendingQueueRef.current.length > 0) {
+          const item = pendingQueueRef.current.shift()
+          if (!item) break
+          await processPhoto(item, currentAuditId)
         }
       }
+
+      // Launch N workers concurrently
+      const workers = Array.from({ length: CONCURRENCY }, () => worker())
+      await Promise.all(workers)
     } finally {
       isProcessingRef.current = false
     }
@@ -188,12 +272,16 @@ export default function AnalyzePage() {
   // Handle files selected from the drop zone
   const handleFilesSelected = useCallback(
     (files: File[]) => {
-      const newItems: PhotoQueueItem[] = files.map((file) => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        file,
-        preview: URL.createObjectURL(file),
-        status: 'pending' as const,
-      }))
+      const newItems: PhotoQueueItem[] = files.map((file) => {
+        const blobUrl = URL.createObjectURL(file)
+        blobUrlsRef.current.add(blobUrl)
+        return {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          file,
+          preview: blobUrl,
+          status: 'pending' as const,
+        }
+      })
 
       setQueue((prev) => [...prev, ...newItems])
       pendingQueueRef.current.push(...newItems)
@@ -204,12 +292,20 @@ export default function AnalyzePage() {
     [processPendingQueue],
   )
 
-  // Handle observation update
+  // Handle observation update (with optimistic rollback)
   const handleObservationUpdate = useCallback(
     async (id: string, updates: Partial<Observation>) => {
-      // Optimistic update
+      // Capture previous state for rollback
+      let previousObservation: Observation | undefined
+
       setObservations((prev) =>
-        prev.map((obs) => (obs.id === id ? { ...obs, ...updates } : obs)),
+        prev.map((obs) => {
+          if (obs.id === id) {
+            previousObservation = obs
+            return { ...obs, ...updates }
+          }
+          return obs
+        }),
       )
 
       // Persist to Supabase
@@ -234,17 +330,31 @@ export default function AnalyzePage() {
 
       if (error) {
         console.error('Error updating observation:', error)
-        // TODO: revert optimistic update or show toast
+        // Revert optimistic update
+        if (previousObservation) {
+          setObservations((prev) =>
+            prev.map((obs) => (obs.id === id ? previousObservation! : obs)),
+          )
+        }
       }
     },
     [supabase],
   )
 
-  // Handle observation delete
+  // Handle observation delete (with optimistic rollback)
   const handleObservationDelete = useCallback(
     async (id: string) => {
-      // Optimistic delete
-      setObservations((prev) => prev.filter((obs) => obs.id !== id))
+      // Capture previous state for rollback
+      let deletedObservation: Observation | undefined
+      let deletedIndex = -1
+
+      setObservations((prev) => {
+        deletedIndex = prev.findIndex((obs) => obs.id === id)
+        if (deletedIndex !== -1) {
+          deletedObservation = prev[deletedIndex]
+        }
+        return prev.filter((obs) => obs.id !== id)
+      })
 
       // Persist to Supabase
       const { error } = await supabase
@@ -254,7 +364,14 @@ export default function AnalyzePage() {
 
       if (error) {
         console.error('Error deleting observation:', error)
-        // TODO: revert optimistic delete or show toast
+        // Revert optimistic delete — re-insert at original position
+        if (deletedObservation) {
+          setObservations((prev) => {
+            const updated = [...prev]
+            updated.splice(deletedIndex, 0, deletedObservation!)
+            return updated
+          })
+        }
       }
     },
     [supabase],
@@ -313,7 +430,10 @@ export default function AnalyzePage() {
       />
 
       {/* Photo Drop Zone */}
-      <PhotoDropZone onFilesSelected={handleFilesSelected} />
+      <PhotoDropZone
+        onFilesSelected={handleFilesSelected}
+        currentQueueCount={queue.length}
+      />
 
       {/* Processing Queue */}
       <PhotoQueue items={queue} />
@@ -328,6 +448,7 @@ export default function AnalyzePage() {
       {/* Export Bar (sticky footer) */}
       <ExportBar
         observations={observations}
+        observationImages={observationImagesRef.current}
         auditDate={auditDate}
         projectName={projectName}
         inspectorName={inspectorName}

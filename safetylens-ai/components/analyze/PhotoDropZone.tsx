@@ -2,24 +2,42 @@
 
 import { useCallback, useRef, useState, type DragEvent, type ChangeEvent } from 'react'
 import clsx from 'clsx'
-import { Camera, Upload } from 'lucide-react'
+import { Camera, Upload, AlertTriangle } from 'lucide-react'
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ACCEPTED_EXTENSIONS = '.jpg,.jpeg,.png,.webp'
+const MAX_FILES_PER_BATCH = 50
 
 interface PhotoDropZoneProps {
   onFilesSelected: (files: File[]) => void
   disabled?: boolean
+  currentQueueCount?: number
 }
 
-function PhotoDropZone({ onFilesSelected, disabled = false }: PhotoDropZoneProps) {
+function PhotoDropZone({ onFilesSelected, disabled = false, currentQueueCount = 0 }: PhotoDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [warning, setWarning] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const filterValidFiles = useCallback((fileList: FileList | File[]): File[] => {
+  const filterAndCapFiles = useCallback((fileList: FileList | File[]): File[] => {
     const files = Array.from(fileList)
-    return files.filter((file) => ACCEPTED_TYPES.includes(file.type))
-  }, [])
+    const validFiles = files.filter((file) => ACCEPTED_TYPES.includes(file.type))
+
+    const remaining = MAX_FILES_PER_BATCH - currentQueueCount
+    if (remaining <= 0) {
+      setWarning(`Maximum of ${MAX_FILES_PER_BATCH} photos per audit reached.`)
+      return []
+    }
+
+    if (validFiles.length > remaining) {
+      setWarning(`Only ${remaining} more photo${remaining === 1 ? '' : 's'} allowed. ${validFiles.length - remaining} photo${validFiles.length - remaining === 1 ? '' : 's'} skipped.`)
+      return validFiles.slice(0, remaining)
+    }
+
+    // Clear warning on successful add
+    setWarning(null)
+    return validFiles
+  }, [currentQueueCount])
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
@@ -46,19 +64,19 @@ function PhotoDropZone({ onFilesSelected, disabled = false }: PhotoDropZoneProps
 
       if (disabled) return
 
-      const validFiles = filterValidFiles(e.dataTransfer.files)
+      const validFiles = filterAndCapFiles(e.dataTransfer.files)
       if (validFiles.length > 0) {
         onFilesSelected(validFiles)
       }
     },
-    [disabled, filterValidFiles, onFilesSelected],
+    [disabled, filterAndCapFiles, onFilesSelected],
   )
 
   const handleFileInput = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || disabled) return
 
-      const validFiles = filterValidFiles(e.target.files)
+      const validFiles = filterAndCapFiles(e.target.files)
       if (validFiles.length > 0) {
         onFilesSelected(validFiles)
       }
@@ -66,7 +84,7 @@ function PhotoDropZone({ onFilesSelected, disabled = false }: PhotoDropZoneProps
       // Reset input so the same file can be re-selected
       e.target.value = ''
     },
-    [disabled, filterValidFiles, onFilesSelected],
+    [disabled, filterAndCapFiles, onFilesSelected],
   )
 
   const handleClick = useCallback(() => {
@@ -127,8 +145,14 @@ function PhotoDropZone({ onFilesSelected, disabled = false }: PhotoDropZoneProps
           {isDragOver ? 'Drop photos here' : 'Drag photos here or click to browse'}
         </p>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Accepts JPEG, PNG, and WebP images
+          JPEG, PNG, WebP — up to {MAX_FILES_PER_BATCH} photos per audit
         </p>
+        {warning && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <AlertTriangle size={14} />
+            {warning}
+          </p>
+        )}
       </div>
 
       {/* Browse Button (visual only, the whole zone is clickable) */}

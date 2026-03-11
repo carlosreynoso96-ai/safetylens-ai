@@ -9,6 +9,7 @@ import { generatePDFContent, printPDF } from '@/lib/utils/export-pdf'
 
 interface ExportBarProps {
   observations: Observation[]
+  observationImages?: Record<string, string>
   auditDate: string
   projectName?: string
   inspectorName?: string
@@ -16,6 +17,7 @@ interface ExportBarProps {
 
 function ExportBar({
   observations,
+  observationImages,
   auditDate,
   projectName,
   inspectorName,
@@ -38,9 +40,10 @@ function ExportBar({
       projectName,
       inspectorName,
       auditDate,
+      images: observationImages,
     })
     printPDF(html)
-  }, [observations, auditDate, projectName, inspectorName, isDisabled])
+  }, [observations, auditDate, projectName, inspectorName, observationImages, isDisabled])
 
   return (
     <div
