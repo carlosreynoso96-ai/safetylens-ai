@@ -142,7 +142,14 @@ function PhotoDropZone({ onFilesSelected, disabled = false, currentQueueCount = 
       {/* Text */}
       <div className="text-center">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {isDragOver ? 'Drop photos here' : 'Drag photos here or click to browse'}
+          {isDragOver ? (
+            'Drop photos here'
+          ) : (
+            <>
+              <span className="hidden md:inline">Drag photos here or click to browse</span>
+              <span className="md:hidden">Tap to take a photo or browse</span>
+            </>
+          )}
         </p>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           JPEG, PNG, WebP — up to {MAX_FILES_PER_BATCH} photos per audit
@@ -166,7 +173,8 @@ function PhotoDropZone({ onFilesSelected, disabled = false, currentQueueCount = 
         )}
       >
         <Upload size={16} />
-        Browse Files
+        <span className="hidden md:inline">Browse Files</span>
+        <span className="md:hidden">Choose Photos</span>
       </div>
 
       {/* Hidden File Input */}
