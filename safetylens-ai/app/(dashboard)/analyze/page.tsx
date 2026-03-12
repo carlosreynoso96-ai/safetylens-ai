@@ -122,6 +122,10 @@ export default function AnalyzePage() {
         if (err instanceof DOMException && err.name === 'AbortError') {
           throw new Error('Request timed out. The image may be too complex — please try again.')
         }
+        // Handle mobile network errors with a clearer message
+        if (err instanceof TypeError && err.message === 'Failed to fetch') {
+          throw new Error('Network error — check your connection and try again.')
+        }
         throw err
       } finally {
         clearTimeout(timeoutId)

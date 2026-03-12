@@ -26,7 +26,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { image_base64, audit_id, media_type } = await request.json()
+    let body: { image_base64?: string; audit_id?: string; media_type?: string }
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Failed to parse request body. The image may be too large — try a smaller photo.', retryable: false },
+        { status: 400 }
+      )
+    }
+
+    const { image_base64, audit_id, media_type } = body
 
     if (!image_base64 || !audit_id) {
       return NextResponse.json(

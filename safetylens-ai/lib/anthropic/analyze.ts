@@ -30,30 +30,47 @@ Respond ONLY with a JSON object (no markdown, no backticks, no preamble) with th
 }`
 
 export async function analyzePhoto(imageBase64: string, mediaType: string = 'image/jpeg'): Promise<AnalysisResult> {
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    messages: [
+  // Use AbortController to enforce a 55-second timeout (under Vercel's 60s limit)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 55_000)
+
+  let response
+  try {
+    response = await anthropic.messages.create(
       {
-        role: 'user',
-        content: [
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [
           {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-              data: imageBase64,
-            },
-          },
-          {
-            type: 'text',
-            text: 'Analyze this construction site photo for safety compliance. Respond with the JSON object only.',
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                  data: imageBase64,
+                },
+              },
+              {
+                type: 'text',
+                text: 'Analyze this construction site photo for safety compliance. Respond with the JSON object only.',
+              },
+            ],
           },
         ],
+        system: ANALYSIS_SYSTEM_PROMPT,
       },
-    ],
-    system: ANALYSIS_SYSTEM_PROMPT,
-  })
+      { signal: controller.signal },
+    )
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Timeout: AI analysis took too long. Please try again.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const content = response.content[0]
   if (content.type !== 'text') {

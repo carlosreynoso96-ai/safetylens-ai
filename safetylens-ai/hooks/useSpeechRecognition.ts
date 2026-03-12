@@ -16,6 +16,8 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   const [transcript, setTranscript] = useState('')
   const [isSupported, setIsSupported] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  // Track which result index we've already processed to avoid duplicates
+  const processedIndexRef = useRef(0)
 
   useEffect(() => {
     const SpeechRecognition =
@@ -24,18 +26,20 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       setIsSupported(true)
       const recognition = new SpeechRecognition()
       recognition.continuous = true
-      recognition.interimResults = true
+      recognition.interimResults = false // Only final results — avoids duplicate partials on mobile
       recognition.lang = 'en-US'
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = ''
-        for (let i = 0; i < event.results.length; i++) {
+        // Only process NEW results (from processedIndexRef onward) to prevent duplicates
+        let newTranscript = ''
+        for (let i = processedIndexRef.current; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript
+            newTranscript += event.results[i][0].transcript
+            processedIndexRef.current = i + 1
           }
         }
-        if (finalTranscript) {
-          setTranscript(finalTranscript)
+        if (newTranscript) {
+          setTranscript((prev) => (prev ? prev + ' ' + newTranscript : newTranscript))
         }
       }
 
@@ -55,6 +59,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
       setTranscript('')
+      processedIndexRef.current = 0 // Reset processed index for new session
       recognitionRef.current.start()
       setIsListening(true)
     }

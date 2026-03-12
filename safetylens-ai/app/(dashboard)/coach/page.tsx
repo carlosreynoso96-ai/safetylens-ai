@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CoachMessage, CoachObservation } from '@/types/coach'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -27,6 +27,9 @@ export default function CoachPage() {
   const [showObsPanel, setShowObsPanel] = useState(false)
   const [status, setStatus] = useState<'ready' | 'listening' | 'speaking' | 'processing'>('ready')
 
+  // Guard ref to prevent duplicate transcript submissions
+  const transcriptSentRef = useRef(false)
+
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } =
     useSpeechRecognition()
   const { speak, cancel: cancelSpeech, isSpeaking } = useSpeechSynthesis()
@@ -39,12 +42,21 @@ export default function CoachPage() {
     else setStatus('ready')
   }, [isListening, isSpeaking, isProcessing])
 
-  // Handle transcript completion
+  // Reset the sent guard when listening starts
   useEffect(() => {
-    if (!isListening && transcript) {
+    if (isListening) {
+      transcriptSentRef.current = false
+    }
+  }, [isListening])
+
+  // Handle transcript completion — fires once when user stops speaking
+  useEffect(() => {
+    if (!isListening && transcript && !transcriptSentRef.current) {
+      transcriptSentRef.current = true // Prevent duplicate sends
       handleSendMessage(transcript)
       resetTranscript()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListening, transcript])
 
   async function handleStartWalk(projectId: string | null, inspectorName: string) {
