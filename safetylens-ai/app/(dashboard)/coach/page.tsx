@@ -320,7 +320,7 @@ export default function CoachPage() {
             <TextInput onSend={handleSendMessage} disabled={isProcessing} />
             {isListening && (
               <p className="text-center text-xs text-gray-400">
-                Hold to talk, release when done
+                Listening… tap the mic again when done
               </p>
             )}
           </div>

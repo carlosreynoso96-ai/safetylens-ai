@@ -25,18 +25,17 @@ export function VoiceButton({
     )
   }
 
+  const handleToggle = () => {
+    if (isListening) {
+      onStop()
+    } else {
+      onStart()
+    }
+  }
+
   return (
     <button
-      onMouseDown={onStart}
-      onMouseUp={onStop}
-      onTouchStart={(e) => {
-        e.preventDefault()
-        onStart()
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault()
-        onStop()
-      }}
+      onClick={handleToggle}
       disabled={disabled}
       className={`w-16 h-16 rounded-full flex items-center justify-center transition-all disabled:opacity-50 ${
         isListening

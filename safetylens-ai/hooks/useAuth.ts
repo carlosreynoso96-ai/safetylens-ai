@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
@@ -12,34 +12,36 @@ export function useAuth() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
+  // Stable client ref — avoids re-creating on every render
+  const supabaseRef = useRef(createClient())
 
-  const fetchProfile = useCallback(
-    async (userId: string) => {
+  useEffect(() => {
+    const supabase = supabaseRef.current
+    let mounted = true
+
+    async function fetchProfile(userId: string) {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
+      if (!mounted) return
       if (error) {
         console.error('Error fetching profile:', error.message)
         setProfile(null)
         return
       }
-
       setProfile(data)
-    },
-    [supabase]
-  )
+    }
 
-  useEffect(() => {
-    // Get the initial session
-    const getInitialSession = async () => {
+    async function getInitialSession() {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession()
+
+        if (!mounted) return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -50,16 +52,24 @@ export function useAuth() {
       } catch (error) {
         console.error('Error getting session:', error)
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
+
+    // Safety timeout: if auth check takes > 10 s, release loading to avoid infinite spinner
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setLoading(false)
+      }
+    }, 10_000)
 
     getInitialSession()
 
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
@@ -73,12 +83,14 @@ export function useAuth() {
     })
 
     return () => {
+      mounted = false
+      clearTimeout(safetyTimer)
       subscription.unsubscribe()
     }
-  }, [supabase, fetchProfile])
+  }, []) // No external deps — supabaseRef is stable, everything is local
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabaseRef.current.auth.signInWithPassword({
       email,
       password,
     })
@@ -88,34 +100,37 @@ export function useAuth() {
     }
 
     return data
-  }
+  }, [])
 
-  const signUp = async (
-    email: string,
-    password: string,
-    fullName: string,
-    company?: string
-  ) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          company: company || null,
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      fullName: string,
+      company?: string
+    ) => {
+      const { data, error } = await supabaseRef.current.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            company: company || null,
+          },
         },
-      },
-    })
+      })
 
-    if (error) {
-      throw error
-    }
+      if (error) {
+        throw error
+      }
 
-    return data
-  }
+      return data
+    },
+    []
+  )
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
+  const signOut = useCallback(async () => {
+    const { error } = await supabaseRef.current.auth.signOut()
 
     if (error) {
       throw error
@@ -123,19 +138,20 @@ export function useAuth() {
 
     setUser(null)
     setProfile(null)
-  }
+  }, [])
 
-  const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    })
+  const resetPassword = useCallback(async (email: string) => {
+    const { data, error } =
+      await supabaseRef.current.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
 
     if (error) {
       throw error
     }
 
     return data
-  }
+  }, [])
 
   return {
     user,
