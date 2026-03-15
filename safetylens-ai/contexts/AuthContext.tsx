@@ -30,16 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = supabaseRef.current
     let mounted = true
+    let initialDone = false
 
     async function fetchProfile(userId: string) {
-      console.log('[AuthProvider] fetchProfile query starting for:', userId)
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
-      console.log('[AuthProvider] fetchProfile result:', { data: !!data, error: error?.message })
       if (!mounted) return
       if (error) {
         console.error('[AuthProvider] Error fetching profile:', error.message)
@@ -49,57 +48,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data)
     }
 
-    async function getInitialSession() {
-      try {
-        console.log('[AuthProvider] Getting session...')
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        console.log('[AuthProvider] Session result:', !!session, session?.user?.email)
-
-        if (!mounted) return
-
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
-
-        if (currentUser) {
-          console.log('[AuthProvider] Fetching profile for:', currentUser.id)
-          await fetchProfile(currentUser.id)
-          console.log('[AuthProvider] Profile fetch complete')
-        }
-      } catch (error) {
-        console.error('[AuthProvider] Error getting session:', error)
-      } finally {
-        console.log('[AuthProvider] Setting loading=false, mounted=', mounted)
-        if (mounted) setLoading(false)
-      }
-    }
-
-    // Safety timeout: if auth check takes > 10 s, release loading
+    // Safety timeout: if auth check takes > 10s, release loading
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
+      if (mounted && loading) {
+        console.warn('[AuthProvider] Safety timeout — releasing loading state')
         setLoading(false)
       }
     }, 10_000)
 
-    getInitialSession()
-
-    // Listen for auth state changes (single listener for the whole app)
+    // Use ONLY onAuthStateChange — do NOT call getSession() separately.
+    // onAuthStateChange fires INITIAL_SESSION synchronously on setup,
+    // which provides the session from cookies without lock contention.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
+
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
       if (currentUser) {
-        await fetchProfile(currentUser.id)
+        // Fetch profile in background, don't block loading state
+        fetchProfile(currentUser.id)
       } else {
         setProfile(null)
       }
 
-      setLoading(false)
+      // On first event (INITIAL_SESSION), set loading to false
+      if (!initialDone) {
+        initialDone = true
+        setLoading(false)
+      }
     })
 
     return () => {
@@ -107,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(safetyTimer)
       subscription.unsubscribe()
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabaseRef.current.auth.signInWithPassword({

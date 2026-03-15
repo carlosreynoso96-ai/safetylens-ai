@@ -24,14 +24,12 @@ export default function DashboardPage() {
   const supabaseRef = useRef(createClient())
 
   const fetchData = useCallback(async () => {
-    console.log('[DashboardPage] fetchData called, user:', !!user, user?.id)
     if (!user) return
     try {
       setError(null)
       setLoading(true)
       const supabase = supabaseRef.current
 
-      console.log('[DashboardPage] Fetching audits...')
       // Fetch recent audits
       const { data: auditData, error: auditErr } = await supabase
         .from('audits')
@@ -40,7 +38,6 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      console.log('[DashboardPage] Audit result:', { count: auditData?.length, error: auditErr?.message })
       if (auditErr) throw auditErr
 
       if (auditData) {
