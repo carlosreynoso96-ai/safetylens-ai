@@ -48,11 +48,16 @@ export default function AuditsPage() {
   }, [fetchAudits])
 
   const filteredAudits = search
-    ? audits.filter(
-        (a) =>
-          a.inspector_name?.toLowerCase().includes(search.toLowerCase()) ||
-          a.audit_type.toLowerCase().includes(search.toLowerCase())
-      )
+    ? audits.filter((a) => {
+        const s = search.toLowerCase()
+        const displayType = a.audit_type === 'coach' ? 'coach walk' : 'photo analysis'
+        return (
+          a.inspector_name?.toLowerCase().includes(s) ||
+          a.audit_type.toLowerCase().includes(s) ||
+          displayType.includes(s) ||
+          formatDate(a.audit_date).toLowerCase().includes(s)
+        )
+      })
     : audits
 
   const totalPages = Math.ceil(total / limit)
