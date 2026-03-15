@@ -32,15 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
 
     async function fetchProfile(userId: string) {
+      console.log('[AuthProvider] fetchProfile query starting for:', userId)
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
+      console.log('[AuthProvider] fetchProfile result:', { data: !!data, error: error?.message })
       if (!mounted) return
       if (error) {
-        console.error('Error fetching profile:', error.message)
+        console.error('[AuthProvider] Error fetching profile:', error.message)
         setProfile(null)
         return
       }
@@ -49,9 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function getInitialSession() {
       try {
+        console.log('[AuthProvider] Getting session...')
         const {
           data: { session },
         } = await supabase.auth.getSession()
+
+        console.log('[AuthProvider] Session result:', !!session, session?.user?.email)
 
         if (!mounted) return
 
@@ -59,11 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
+          console.log('[AuthProvider] Fetching profile for:', currentUser.id)
           await fetchProfile(currentUser.id)
+          console.log('[AuthProvider] Profile fetch complete')
         }
       } catch (error) {
-        console.error('Error getting session:', error)
+        console.error('[AuthProvider] Error getting session:', error)
       } finally {
+        console.log('[AuthProvider] Setting loading=false, mounted=', mounted)
         if (mounted) setLoading(false)
       }
     }
