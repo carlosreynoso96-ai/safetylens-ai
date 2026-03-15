@@ -29,6 +29,33 @@ function getPlanFromPriceId(priceId: string): PlanType {
   return 'free_trial'
 }
 
+/**
+ * Check if a webhook event has already been processed (idempotency).
+ * Returns true if the event was already handled.
+ */
+async function isEventProcessed(supabase: ReturnType<typeof createAdminClient>, eventId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('stripe_webhook_events')
+    .select('event_id')
+    .eq('event_id', eventId)
+    .single()
+
+  return !!data
+}
+
+/**
+ * Mark a webhook event as processed.
+ */
+async function markEventProcessed(
+  supabase: ReturnType<typeof createAdminClient>,
+  eventId: string,
+  eventType: string
+): Promise<void> {
+  await supabase
+    .from('stripe_webhook_events')
+    .insert({ event_id: eventId, event_type: eventType })
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
@@ -52,6 +79,11 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+
+  // Idempotency check — skip if already processed
+  if (await isEventProcessed(supabase, event.id)) {
+    return NextResponse.json({ received: true, skipped: 'duplicate' }, { status: 200 })
+  }
 
   try {
     switch (event.type) {
@@ -156,6 +188,9 @@ export async function POST(request: NextRequest) {
         break
       }
     }
+
+    // Mark event as processed
+    await markEventProcessed(supabase, event.id, event.type)
 
     return NextResponse.json({ received: true }, { status: 200 })
   } catch (error) {

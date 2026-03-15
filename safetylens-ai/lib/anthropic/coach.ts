@@ -29,18 +29,21 @@ IMPORTANT:
 - Never say "As an AI." You are their safety coach.
 - Match their energy.`
 
-export async function getCoachResponse(messages: CoachMessage[]): Promise<CoachResponse> {
+export async function getCoachResponse(messages: CoachMessage[], signal?: AbortSignal): Promise<CoachResponse> {
   const formattedMessages = messages.map((m) => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }))
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 512,
-    system: COACH_SYSTEM_PROMPT,
-    messages: formattedMessages,
-  })
+  const response = await anthropic.messages.create(
+    {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      system: COACH_SYSTEM_PROMPT,
+      messages: formattedMessages,
+    },
+    signal ? { signal } : undefined
+  )
 
   const content = response.content[0]
   if (content.type !== 'text') {

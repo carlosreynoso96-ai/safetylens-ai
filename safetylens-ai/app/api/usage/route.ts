@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
+import { cacheGet, cacheSet, CACHE_TTL } from '@/lib/redis/cache'
+
+interface UsageData {
+  walks_used: number
+  walks_limit: number
+  photos_analyzed: number
+  coach_sessions_used: number
+  coach_sessions_limit: number
+  plan: string
+  trial_ends_at: string | null
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +21,15 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check Redis cache first
+    const cacheKey = `usage:${user.id}`
+    const cached = await cacheGet<UsageData>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+      })
     }
 
     // Get profile with usage data
@@ -31,28 +51,36 @@ export async function GET(request: NextRequest) {
     startOfMonth.setDate(1)
     startOfMonth.setHours(0, 0, 0, 0)
 
-    const { count: photosAnalyzed } = await supabase
-      .from('usage_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('action', 'photo_analyzed')
-      .gte('created_at', startOfMonth.toISOString())
+    // Run both count queries in parallel
+    const [photosResult, coachResult] = await Promise.all([
+      supabase
+        .from('usage_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('action', 'photo_analyzed')
+        .gte('created_at', startOfMonth.toISOString()),
+      supabase
+        .from('coach_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('started_at', startOfMonth.toISOString()),
+    ])
 
-    // Count coach sessions this month
-    const { count: coachSessionsUsed } = await supabase
-      .from('coach_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', startOfMonth.toISOString())
-
-    return NextResponse.json({
+    const data: UsageData = {
       walks_used: profile.walks_used_this_month || 0,
       walks_limit: limits?.walks_per_month ?? 0,
-      photos_analyzed: photosAnalyzed || 0,
-      coach_sessions_used: coachSessionsUsed || 0,
+      photos_analyzed: photosResult.count || 0,
+      coach_sessions_used: coachResult.count || 0,
       coach_sessions_limit: limits?.coach_sessions_per_month ?? 0,
       plan: profile.plan,
       trial_ends_at: profile.trial_ends_at,
+    }
+
+    // Cache the result
+    await cacheSet(cacheKey, data, CACHE_TTL.USAGE)
+
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     })
   } catch (error) {
     console.error('Usage error:', error)

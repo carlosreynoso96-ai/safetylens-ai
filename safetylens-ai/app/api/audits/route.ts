@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from '@/lib/redis/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +29,17 @@ export async function GET(request: NextRequest) {
       query = query.eq('project_id', projectId)
     }
 
+    // Check cache for default queries (no project filter)
+    const cacheKey = `audits:${user.id}:${page}:${limit}`
+    if (!projectId) {
+      const cached = await cacheGet(cacheKey)
+      if (cached) {
+        return NextResponse.json(cached, {
+          headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+        })
+      }
+    }
+
     const { data: audits, error, count } = await query
 
     if (error) {
@@ -35,7 +47,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 })
     }
 
-    return NextResponse.json({
+    const response = {
       audits,
       pagination: {
         page,
@@ -43,6 +55,15 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         total_pages: Math.ceil((count || 0) / limit),
       },
+    }
+
+    // Cache the result
+    if (!projectId) {
+      await cacheSet(cacheKey, response, CACHE_TTL.AUDITS)
+    }
+
+    return NextResponse.json(response, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     })
   } catch (error) {
     console.error('Audits GET error:', error)
@@ -105,6 +126,12 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', user.id)
     }
+
+    // Invalidate cached audit list and usage
+    await Promise.all([
+      cacheDel(`audits:${user.id}:1:20`),
+      cacheDel(`usage:${user.id}`),
+    ])
 
     return NextResponse.json({ audit }, { status: 201 })
   } catch (error) {

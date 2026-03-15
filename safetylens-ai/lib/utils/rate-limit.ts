@@ -1,31 +1,5 @@
-/**
- * Simple in-memory rate limiter for API routes.
- * Uses a sliding window approach with per-key tracking.
- */
-
-interface RateLimitEntry {
-  count: number
-  resetAt: number
-}
-
-const store = new Map<string, RateLimitEntry>()
-
-// Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) {
-      store.delete(key)
-    }
-  }
-}, 60_000) // every 60s
-
-interface RateLimitOptions {
-  /** Maximum number of requests in the window */
-  maxRequests: number
-  /** Window duration in seconds */
-  windowSeconds: number
-}
+import { Ratelimit } from '@upstash/ratelimit'
+import { getRedis } from '@/lib/redis/client'
 
 interface RateLimitResult {
   success: boolean
@@ -33,40 +7,116 @@ interface RateLimitResult {
   resetAt: number
 }
 
-export function rateLimit(
-  key: string,
-  options: RateLimitOptions
-): RateLimitResult {
+// Lazily-initialized Upstash rate limiters (shared across requests)
+let _analyzeLimiter: Ratelimit | null = null
+let _coachLimiter: Ratelimit | null = null
+let _generalLimiter: Ratelimit | null = null
+
+function getAnalyzeLimiter(): Ratelimit {
+  if (!_analyzeLimiter) {
+    _analyzeLimiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(10, '60 s'),
+      prefix: 'rl:analyze',
+    })
+  }
+  return _analyzeLimiter
+}
+
+function getCoachLimiter(): Ratelimit {
+  if (!_coachLimiter) {
+    _coachLimiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(20, '60 s'),
+      prefix: 'rl:coach',
+    })
+  }
+  return _coachLimiter
+}
+
+function getGeneralLimiter(): Ratelimit {
+  if (!_generalLimiter) {
+    _generalLimiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(60, '60 s'),
+      prefix: 'rl:general',
+    })
+  }
+  return _generalLimiter
+}
+
+/**
+ * In-memory fallback for when Redis is unavailable.
+ */
+const memoryStore = new Map<string, { count: number; resetAt: number }>()
+
+setInterval(() => {
   const now = Date.now()
-  const entry = store.get(key)
+  for (const [key, entry] of memoryStore) {
+    if (now > entry.resetAt) memoryStore.delete(key)
+  }
+}, 60_000)
+
+function memoryRateLimit(key: string, maxRequests: number, windowMs: number): RateLimitResult {
+  const now = Date.now()
+  const entry = memoryStore.get(key)
 
   if (!entry || now > entry.resetAt) {
-    // New window
-    const resetAt = now + options.windowSeconds * 1000
-    store.set(key, { count: 1, resetAt })
-    return { success: true, remaining: options.maxRequests - 1, resetAt }
+    const resetAt = now + windowMs
+    memoryStore.set(key, { count: 1, resetAt })
+    return { success: true, remaining: maxRequests - 1, resetAt }
   }
 
-  if (entry.count >= options.maxRequests) {
+  if (entry.count >= maxRequests) {
     return { success: false, remaining: 0, resetAt: entry.resetAt }
   }
 
   entry.count++
-  return {
-    success: true,
-    remaining: options.maxRequests - entry.count,
-    resetAt: entry.resetAt,
-  }
+  return { success: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt }
 }
 
 /**
- * Pre-configured rate limiters for different API routes
+ * Pre-configured rate limit configs for different API routes
  */
 export const API_LIMITS = {
-  /** AI analysis: 10 requests per minute per user */
   analyze: { maxRequests: 10, windowSeconds: 60 },
-  /** Coach: 20 messages per minute per user */
   coach: { maxRequests: 20, windowSeconds: 60 },
-  /** General API: 60 requests per minute per user */
   general: { maxRequests: 60, windowSeconds: 60 },
 } as const
+
+type LimitType = keyof typeof API_LIMITS
+
+const limiterMap: Record<LimitType, () => Ratelimit> = {
+  analyze: getAnalyzeLimiter,
+  coach: getCoachLimiter,
+  general: getGeneralLimiter,
+}
+
+/**
+ * Distributed rate limiter backed by Upstash Redis, with in-memory fallback.
+ */
+export async function rateLimit(key: string, type: LimitType): Promise<RateLimitResult> {
+  const config = API_LIMITS[type]
+
+  // Try Redis-based rate limiting first
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    try {
+      const limiter = limiterMap[type]()
+      const result = await limiter.limit(key)
+      return {
+        success: result.success,
+        remaining: result.remaining,
+        resetAt: result.reset,
+      }
+    } catch {
+      // Fall through to in-memory
+    }
+  }
+
+  // Fallback: in-memory rate limiting
+  return memoryRateLimit(
+    `${type}:${key}`,
+    config.maxRequests,
+    config.windowSeconds * 1000
+  )
+}

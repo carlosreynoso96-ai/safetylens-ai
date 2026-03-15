@@ -3,7 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { analyzePhoto } from '@/lib/anthropic/analyze'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
-import { rateLimit, API_LIMITS } from '@/lib/utils/rate-limit'
+import { rateLimit } from '@/lib/utils/rate-limit'
+import { cacheDel } from '@/lib/redis/cache'
 
 // Allow up to 60 seconds for AI analysis (important for Vercel deployment)
 export const maxDuration = 60
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit check
-    const rl = rateLimit(`analyze:${user.id}`, API_LIMITS.analyze)
+    const rl = await rateLimit(user.id, 'analyze')
     if (!rl.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait before analyzing more photos.' },
@@ -230,6 +231,12 @@ export async function POST(request: NextRequest) {
       action: 'photo_analyzed',
       audit_id,
     })
+
+    // Invalidate cached usage stats and audit list
+    await Promise.all([
+      cacheDel(`usage:${user.id}`),
+      cacheDel(`audits:${user.id}:1:20`),
+    ])
 
     return NextResponse.json({ observation: savedObs })
   } catch (error) {
