@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Project } from '@/types/audit'
 import { formatDate } from '@/lib/utils/format'
 import Link from 'next/link'
 import { FolderOpen, Plus, MapPin, ChevronRight, X } from 'lucide-react'
 
 export default function ProjectsPage() {
+  const { user } = useAuth()
+  const supabaseRef = useRef(createClient())
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -15,13 +18,12 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    fetchProjects()
-  }, [])
+    if (user) fetchProjects()
+  }, [user])
 
   async function fetchProjects() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    const supabase = supabaseRef.current
 
     const { data } = await supabase
       .from('projects')
@@ -34,12 +36,10 @@ export default function ProjectsPage() {
   }
 
   async function handleCreate() {
-    if (!newProject.name.trim()) return
+    if (!newProject.name.trim() || !user) return
     setCreating(true)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const supabase = supabaseRef.current
 
     const { data, error } = await supabase
       .from('projects')
@@ -61,7 +61,7 @@ export default function ProjectsPage() {
   }
 
   async function handleToggleActive(project: Project) {
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     await supabase
       .from('projects')
       .update({ is_active: !project.is_active, updated_at: new Date().toISOString() })

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Project, Audit } from '@/types/audit'
 import { formatDate } from '@/lib/utils/format'
 import Link from 'next/link'
@@ -18,9 +19,11 @@ import {
 } from 'lucide-react'
 
 export default function ProjectDetailPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const projectId = params.id as string
+  const supabaseRef = useRef(createClient())
 
   const [project, setProject] = useState<Project | null>(null)
   const [audits, setAudits] = useState<Audit[]>([])
@@ -29,13 +32,12 @@ export default function ProjectDetailPage() {
   const [editData, setEditData] = useState({ name: '', location: '', description: '' })
 
   useEffect(() => {
-    fetchProject()
-  }, [projectId])
+    if (user) fetchProject()
+  }, [projectId, user])
 
   async function fetchProject() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    const supabase = supabaseRef.current
 
     const { data: proj } = await supabase
       .from('projects')
@@ -67,7 +69,7 @@ export default function ProjectDetailPage() {
   }
 
   async function handleSave() {
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     await supabase
       .from('projects')
       .update({

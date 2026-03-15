@@ -1,27 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Bell, User } from 'lucide-react'
 
 export function DashboardHeader() {
-  const [userName, setUserName] = useState('')
-
-  useEffect(() => {
-    const supabase = createClient()
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, email')
-          .eq('id', user.id)
-          .single()
-        setUserName(profile?.full_name || profile?.email || '')
-      }
-    }
-    fetchUser()
-  }, [])
+  const { user, profile } = useAuth()
+  const userName = profile?.full_name || user?.email || ''
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">

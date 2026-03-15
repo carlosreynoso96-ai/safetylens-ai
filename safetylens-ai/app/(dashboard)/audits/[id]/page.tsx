@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Audit, Observation } from '@/types/audit'
 import { formatDate } from '@/lib/utils/format'
 import { generateCSV, downloadCSV } from '@/lib/utils/export-csv'
@@ -24,9 +25,11 @@ import {
 } from 'lucide-react'
 
 export default function AuditDetailPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const auditId = params.id as string
+  const supabaseRef = useRef(createClient())
 
   const [audit, setAudit] = useState<Audit | null>(null)
   const [observations, setObservations] = useState<Observation[]>([])
@@ -35,13 +38,12 @@ export default function AuditDetailPage() {
   const [editData, setEditData] = useState<Partial<Observation>>({})
 
   useEffect(() => {
-    fetchAudit()
-  }, [auditId])
+    if (user) fetchAudit()
+  }, [auditId, user])
 
   async function fetchAudit() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    const supabase = supabaseRef.current
 
     const { data: auditData } = await supabase
       .from('audits')
@@ -69,10 +71,9 @@ export default function AuditDetailPage() {
     setLoading(false)
   }
 
-  // Recalculate audit aggregate counts from current observations
   async function recalcAuditCounts(updatedObs: Observation[]) {
     if (!audit) return
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     const counts = {
       total_observations: updatedObs.length,
       compliant_count: updatedObs.filter((o) => o.compliance === 'compliant').length,
@@ -85,7 +86,7 @@ export default function AuditDetailPage() {
   }
 
   async function handleToggleCompliance(obs: Observation) {
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     const newCompliance = obs.compliance === 'compliant' ? 'non_compliant' : 'compliant'
     const newNarrative =
       newCompliance === 'compliant' ? obs.compliant_narrative : obs.non_compliant_narrative
@@ -123,7 +124,7 @@ export default function AuditDetailPage() {
   }
 
   async function handleSaveEdit(obsId: string) {
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     await supabase
       .from('observations')
       .update({ ...editData, updated_at: new Date().toISOString() })
@@ -138,7 +139,7 @@ export default function AuditDetailPage() {
 
   async function handleDelete(obsId: string) {
     if (!confirm('Delete this observation?')) return
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     await supabase.from('observations').delete().eq('id', obsId)
     const updatedObs = observations.filter((o) => o.id !== obsId)
     setObservations(updatedObs)
@@ -162,7 +163,7 @@ export default function AuditDetailPage() {
 
   async function handleMarkCompleted() {
     if (!audit) return
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     const { error } = await supabase
       .from('audits')
       .update({ status: 'completed', updated_at: new Date().toISOString() })

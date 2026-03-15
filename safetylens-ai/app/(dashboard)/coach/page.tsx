@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { CoachMessage, CoachObservation } from '@/types/coach'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
@@ -17,7 +18,9 @@ import { ClipboardList, X, Square, Lock } from 'lucide-react'
 type SessionState = 'start' | 'active' | 'ended'
 
 export default function CoachPage() {
+  const { user } = useAuth()
   const { canUseCoach, loading: planLoading, plan } = usePlan()
+  const supabaseRef = useRef(createClient())
   const [sessionState, setSessionState] = useState<SessionState>('start')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [auditId, setAuditId] = useState<string | null>(null)
@@ -60,7 +63,8 @@ export default function CoachPage() {
   }, [isListening, transcript])
 
   async function handleStartWalk(projectId: string | null, inspectorName: string) {
-    const supabase = createClient()
+    if (!user) return
+    const supabase = supabaseRef.current
 
     try {
       // Create audit via centralized API (handles walk counting & validation)
@@ -84,9 +88,6 @@ export default function CoachPage() {
       if (!audit) return
 
       // Create coach session
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
       const { data: session } = await supabase
         .from('coach_sessions')
         .insert({
@@ -221,7 +222,7 @@ export default function CoachPage() {
     }
 
     // Update audit status
-    const supabase = createClient()
+    const supabase = supabaseRef.current
     await supabase
       .from('audits')
       .update({ status: 'completed', updated_at: new Date().toISOString() })

@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { User, Save } from 'lucide-react'
 
 export default function SettingsPage() {
+  const { user } = useAuth()
+  const supabaseRef = useRef(createClient())
   const [profile, setProfile] = useState({
     full_name: '',
     email: '',
@@ -17,9 +20,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function fetchProfile() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const supabase = supabaseRef.current
 
       const { data } = await supabase
         .from('profiles')
@@ -38,13 +40,12 @@ export default function SettingsPage() {
       setLoading(false)
     }
     fetchProfile()
-  }, [])
+  }, [user])
 
   async function handleSave() {
-    setSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setSaving(true)
+    const supabase = supabaseRef.current
 
     await supabase
       .from('profiles')

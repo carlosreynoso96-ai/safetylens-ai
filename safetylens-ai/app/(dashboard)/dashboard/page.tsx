@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Audit } from '@/types/audit'
 import { StatsCards } from '@/components/dashboard/StatsCards'
 import { RecentAudits } from '@/components/dashboard/RecentAudits'
@@ -10,6 +11,7 @@ import Link from 'next/link'
 import { Camera, Headphones, AlertTriangle, RefreshCw } from 'lucide-react'
 
 export default function DashboardPage() {
+  const { user } = useAuth()
   const [audits, setAudits] = useState<Audit[]>([])
   const [stats, setStats] = useState({
     totalAudits: 0,
@@ -19,14 +21,14 @@ export default function DashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const supabaseRef = useRef(createClient())
 
   const fetchData = useCallback(async () => {
+    if (!user) return
     try {
       setError(null)
       setLoading(true)
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const supabase = supabaseRef.current
 
       // Fetch recent audits
       const { data: auditData, error: auditErr } = await supabase
@@ -64,7 +66,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     fetchData()

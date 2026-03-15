@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Audit } from '@/types/audit'
 import { formatDate } from '@/lib/utils/format'
 import Link from 'next/link'
 import { Camera, Headphones, ChevronRight, Search, Filter } from 'lucide-react'
 
 export default function AuditsPage() {
+  const { user } = useAuth()
+  const supabaseRef = useRef(createClient())
   const [audits, setAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -16,14 +19,9 @@ export default function AuditsPage() {
   const [total, setTotal] = useState(0)
   const limit = 20
 
-  useEffect(() => {
-    fetchAudits()
-  }, [page, typeFilter])
-
-  async function fetchAudits() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+  const fetchAudits = useCallback(async () => {
     if (!user) return
+    const supabase = supabaseRef.current
 
     let query = supabase
       .from('audits')
@@ -43,7 +41,11 @@ export default function AuditsPage() {
       setTotal(count || 0)
     }
     setLoading(false)
-  }
+  }, [user, page, typeFilter])
+
+  useEffect(() => {
+    fetchAudits()
+  }, [fetchAudits])
 
   const filteredAudits = search
     ? audits.filter(

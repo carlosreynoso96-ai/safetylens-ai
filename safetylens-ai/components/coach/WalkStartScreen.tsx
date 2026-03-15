@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Project } from '@/types/audit'
 import { Headphones } from 'lucide-react'
 
@@ -10,6 +11,8 @@ interface WalkStartScreenProps {
 }
 
 export function WalkStartScreen({ onStart }: WalkStartScreenProps) {
+  const { user, profile } = useAuth()
+  const supabaseRef = useRef(createClient())
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [inspectorName, setInspectorName] = useState('')
@@ -17,9 +20,8 @@ export function WalkStartScreen({ onStart }: WalkStartScreenProps) {
 
   useEffect(() => {
     async function fetchProjects() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const supabase = supabaseRef.current
 
       const { data } = await supabase
         .from('projects')
@@ -31,17 +33,11 @@ export function WalkStartScreen({ onStart }: WalkStartScreenProps) {
       if (data) setProjects(data as Project[])
 
       // Pre-fill inspector name from profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single()
-
       if (profile?.full_name) setInspectorName(profile.full_name)
       setLoading(false)
     }
     fetchProjects()
-  }, [])
+  }, [user, profile])
 
   function handleStart() {
     onStart(selectedProject || null, inspectorName)

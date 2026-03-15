@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 import { CreditCard, Check, ExternalLink } from 'lucide-react'
 
 export default function BillingPage() {
+  const { user } = useAuth()
+  const supabaseRef = useRef(createClient())
   const [currentPlan, setCurrentPlan] = useState<PlanType>('free_trial')
   const [planStatus, setPlanStatus] = useState('trialing')
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null)
@@ -16,9 +19,8 @@ export default function BillingPage() {
 
   useEffect(() => {
     async function fetchBilling() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const supabase = supabaseRef.current
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -34,7 +36,7 @@ export default function BillingPage() {
       setLoading(false)
     }
     fetchBilling()
-  }, [])
+  }, [user])
 
   async function handleUpgrade(plan: PlanType) {
     setUpgrading(plan)
