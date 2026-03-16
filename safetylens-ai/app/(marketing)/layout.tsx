@@ -1,5 +1,6 @@
 import MarketingNav from '@/components/layout/MarketingNav'
 import MarketingFooter from '@/components/layout/MarketingFooter'
+import StructuredData from '@/components/marketing/StructuredData'
 
 export default function MarketingLayout({
   children,
@@ -8,6 +9,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <StructuredData />
       <MarketingNav />
       <main className="flex-1">{children}</main>
       <MarketingFooter />

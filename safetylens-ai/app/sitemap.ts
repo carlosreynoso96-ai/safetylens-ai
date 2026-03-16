@@ -1,7 +1,23 @@
 import type { MetadataRoute } from 'next'
+import { blogPosts } from '@/lib/blog/posts'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://getvorsa.ai'
+
+  const blogEntries: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    ...blogPosts.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+  ]
 
   return [
     {
@@ -46,5 +62,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.3,
     },
+    ...blogEntries,
   ]
 }

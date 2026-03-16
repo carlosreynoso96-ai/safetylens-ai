@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { trackSignup } from '@/lib/utils/analytics'
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('')
@@ -55,7 +56,20 @@ export default function SignUpPage() {
         return
       }
 
+      trackSignup()
       setEmailSent(true)
+
+      // Fire welcome drip email (non-blocking)
+      fetch('/api/emails/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          full_name: fullName.trim(),
+        }),
+      }).catch(() => {
+        // Silently ignore — welcome email is best-effort
+      })
     } catch {
       setError('An unexpected error occurred. Please try again.')
     } finally {
