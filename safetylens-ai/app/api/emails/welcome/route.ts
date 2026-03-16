@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWelcomeEmail } from '@/lib/resend/emails'
+import { notifySlack } from '@/lib/utils/slack'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    // Ping Slack (non-blocking)
+    notifySlack(`🎉 New signup: *${full_name}* (${email})`)
 
     return NextResponse.json({ success: true })
   } catch (err) {
