@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
           // Find user by stripe_customer_id
           const { data: profile } = await supabase
             .from('profiles')
-            .select('id')
+            .select('id, referred_by')
             .eq('stripe_customer_id', customerId)
             .single()
 
@@ -109,6 +109,26 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: customerId,
               })
               .eq('id', profile.id)
+
+            // If this user was referred, complete the referral and apply credits
+            if (profile.referred_by) {
+              try {
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                await fetch(`${appUrl}/api/referrals/complete`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(process.env.INTERNAL_API_SECRET
+                      ? { Authorization: `Bearer ${process.env.INTERNAL_API_SECRET}` }
+                      : {}),
+                  },
+                  body: JSON.stringify({ user_id: profile.id }),
+                })
+              } catch (err) {
+                // Non-fatal — log but don't fail the webhook
+                console.error('[Webhook] Referral completion failed:', err)
+              }
+            }
           }
         }
         break

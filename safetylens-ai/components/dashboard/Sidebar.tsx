@@ -10,6 +10,7 @@ import {
   ClipboardList,
   FolderOpen,
   Settings,
+  Gift,
   LogOut,
   ChevronLeft,
   Menu,
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/audits', label: 'Audit History', icon: ClipboardList },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/settings/referral', label: 'Refer & Earn', icon: Gift },
 ]
 
 export function Sidebar() {
