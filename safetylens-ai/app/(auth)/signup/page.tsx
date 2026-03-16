@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { trackSignup } from '@/lib/utils/analytics'
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
+  )
+}
+
+function SignUpForm() {
+  const searchParams = useSearchParams()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -70,6 +80,18 @@ export default function SignUpPage() {
       }).catch(() => {
         // Silently ignore — welcome email is best-effort
       })
+
+      // Link referral if ref code is present (non-blocking)
+      const refCode = searchParams.get('ref')
+      if (refCode) {
+        fetch('/api/referrals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referral_code: refCode }),
+        }).catch(() => {
+          // Silently ignore — referral linking is best-effort
+        })
+      }
     } catch {
       setError('An unexpected error occurred. Please try again.')
     } finally {

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { ArrowRight, Play, ShieldCheck, Layers, Headphones } from 'lucide-react'
 
@@ -48,6 +50,7 @@ export default function Hero() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <button
+              onClick={() => document.getElementById('coach')?.scrollIntoView({ behavior: 'smooth' })}
               className="group inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 shadow-sm transition-all hover:border-orange-200 hover:text-orange-600 hover:shadow-md"
             >
               <Play className="h-4 w-4 fill-current" />
