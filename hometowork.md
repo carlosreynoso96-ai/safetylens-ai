@@ -190,49 +190,41 @@ safetylens-ai/safetylens-ai/
 
 | Field | Value |
 |-------|-------|
-| Date | 2026-03-16 |
+| Date | 2026-03-16 (evening) |
 | Location | LAPTOP |
-| Last commit | `df0e4bf` — Add Slack notification on new signups |
-| Dev server status | Not running (building/pushing) |
+| Last commit | `1fb6efb` — Add OG preview image for social sharing |
+| Dev server status | Not running |
 | Errors at close | None |
 
-### What was done this session
-- **Scalability infrastructure:** Upstash Redis (rate limiting + caching), /api/health endpoint, Stripe webhook idempotency, coach 55s timeout, Cache-Control headers, new DB indexes (migration 004)
-- **Upstash Redis created** via API — `vorsa-ai-prod` in us-east-1, env vars set locally + in Vercel
-- **Verified production health:** `getvorsa.ai/api/health` returns healthy (DB ok, Redis ok, env ok)
-- **UptimeRobot configured** — monitoring /api/health every 5 min
-- **Email drip system:** welcome, day 3, day 10, trial expired emails via Resend + cron at 9 AM UTC
-- **SEO blog:** 8 articles (OSHA checklist, AI tools, safety walk, top 10 violations, audit template, fall protection, EMR, daily checklist)
-- **Google structured data:** Organization, SoftwareApplication, FAQPage JSON-LD
-- **Conversion tracking:** Vercel Analytics events for signup, analysis, coach, upgrade, export
-- **Referral program:** Full stack — code generation, tracking, Stripe balance credits, /referral page, /settings/referral dashboard, sidebar link, webhook trigger on checkout
-- **Slack signup notifications:** pings on every new signup (webhook URL pending)
-- **Marketing content pack:** 10 LinkedIn posts, 3 cold email templates, directory listings, referral copy
-- **Watch Demo button** fixed — scrolls to CoachDemo
-- **Removed placeholder notifications bell** from dashboard header
-- **Vercel cron** configured via vercel.json
-- **Migration 004 applied** in Supabase (webhook events + indexes)
-- All code committed and pushed, Vercel deploying
-
-### What Carlos is doing right now (in Cowork)
-1. Setting up Slack Incoming Webhook → will add SLACK_WEBHOOK_URL to Vercel
-2. Verifying Resend domain (getvorsa.ai)
-3. Starting LinkedIn posting from References/marketing-content.md
+### What was done this session (continued from earlier 3/15-16 session)
+- **All Vercel env vars confirmed set:** CRON_SECRET, SLACK_WEBHOOK_URL, INTERNAL_API_SECRET
+- **Migration 005 applied** in Supabase (referrals table + profile columns)
+- **DKIM DNS active** for getvorsa.ai (Google Workspace authenticating)
+- **Vercel redeployed** — production ready, built in 1m 12s, all env vars live
+- **Signup → Slack chain verified:** signup page → /api/emails/welcome → notifySlack() — fully wired end-to-end
+- **Open Graph image added** — AI-generated 1200x630 branded preview image (`public/og-image.png`)
+- **OG meta tags added** to root layout, pricing, blog index, and all blog post pages (og:image + twitter:image)
+- **PhantomBuster leads exported** — 347 leads as CSV (`phantombuster-all-leads-03162026.csv`), all Las Vegas/NV construction PMs with full LinkedIn data
+- **LinkedIn posts queued in Buffer** — 10 posts scheduled March 18 through early April (Free plan, 1 slot remaining)
+- **Cold email batch #1 drafted** — 22 personalized emails for leads with email addresses (in `References/cold-email-batch-1.md`)
 
 ### Next steps
-1. **Add env vars to Vercel:** CRON_SECRET, SLACK_WEBHOOK_URL, INTERNAL_API_SECRET
-2. **Run migration 005** in Supabase SQL Editor (referrals table)
-3. **Record 60-second demo video** — upload photo → AI findings → export PDF
-4. **List on Capterra and G2** (free — links in References/marketing-content.md)
-5. **Cold email batch #1** — target 20 safety managers at GCs
+1. **Record 60-second demo video** — upload photo → AI findings → export PDF
+2. **List on Capterra and G2** (free — links in References/marketing-content.md)
+3. **Enrich leads with work emails** — use Apollo.io/Hunter.io/RocketReach for the 326 leads without emails
+4. **Send cold email batch #1** — 22 emails ready in References/cold-email-batch-1.md
+5. **LinkedIn DMs** — direct outreach to high-value leads without emails
 6. **Monitor Vercel Analytics** for conversion funnel data
+7. **Upgrade Buffer** if more LinkedIn content needed (currently on Free plan)
 
 ### Notes
 - App is fully deployed and live at getvorsa.ai
-- Email confirmation is re-enabled in Supabase
-- Stripe webhook points to production URL
-- All migrations through 004 applied; 005 (referrals) still pending
-- Redis falls back gracefully to in-memory if unavailable
+- All env vars set in Vercel (including CRON_SECRET, SLACK_WEBHOOK_URL, INTERNAL_API_SECRET)
+- All migrations through 005 applied
+- Slack signup notifications fully wired and live
+- OG preview image live — test at opengraph.xyz
+- Buffer Free plan: 1 post slot remaining after 10 queued
+- PhantomBuster leads: 347 total, 22 with personal emails, 139 owners/execs, 144 PMs
 
 ---
 
@@ -245,3 +237,4 @@ safetylens-ai/safetylens-ai/
 | 2026-03-10 | LAPTOP | Full E2E testing passed: auth, photo analysis, safety coach. Fixed /signin 404. Removed debug logging. Disabled email confirm for testing. |
 | 2026-03-11 | LAPTOP | Rebranded to Vorsa AI. Deployed to Vercel at getvorsa.ai. Added legal pages, SEO files, Vercel Analytics, Sentry. Re-enabled email confirmation. |
 | 2026-03-15–16 | LAPTOP | Major growth infrastructure push: Upstash Redis (rate limiting + caching), health endpoint, UptimeRobot, webhook idempotency, email drip system (4 emails + cron), 8 SEO blog articles, structured data, conversion tracking, full referral program (Stripe credits), Slack signup notifications, marketing content pack (LinkedIn + cold emails + directories), Watch Demo fix, removed placeholder notifications bell. All committed and pushed. |
+| 2026-03-16 (eve) | LAPTOP | Marketing launch prep: confirmed all Vercel env vars + migration 005 + DKIM. Added OG image + meta tags for social sharing. Exported 347 PhantomBuster leads, queued 10 LinkedIn posts in Buffer, drafted 22 personalized cold emails. Full signup→Slack chain verified live. |
