@@ -29,12 +29,21 @@ export const metadata: Metadata = {
     url: "https://getvorsa.ai",
     siteName: "Vorsa AI",
     type: "website",
+    images: [
+      {
+        url: "https://getvorsa.ai/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Vorsa AI — AI-Powered Safety Audits for Construction",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Vorsa AI",
     description:
       "Turn jobsite photos into OSHA-cited safety reports in seconds.",
+    images: ["https://getvorsa.ai/og-image.png"],
   },
 };
 

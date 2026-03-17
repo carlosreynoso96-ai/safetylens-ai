@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   title: 'Pricing — Vorsa AI',
   description:
     'Simple, transparent pricing for AI-powered construction safety. Start with a 14-day free trial. No credit card required.',
+  openGraph: {
+    title: 'Pricing — Vorsa AI',
+    description:
+      'Simple, transparent pricing for AI-powered construction safety. Start free for 14 days.',
+    url: 'https://getvorsa.ai/pricing',
+    images: [{ url: 'https://getvorsa.ai/og-image.png', width: 1200, height: 630 }],
+  },
 }
 
 export default function PricingPage() {

@@ -29,6 +29,7 @@ export async function generateMetadata({
       publishedTime: post.date,
       authors: [post.author],
       tags: post.tags,
+      images: [{ url: 'https://getvorsa.ai/og-image.png', width: 1200, height: 630 }],
     },
     alternates: {
       canonical: `https://getvorsa.ai/blog/${post.slug}`,

@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     description:
       'Construction safety insights, OSHA compliance guides, and AI inspection tips from the Vorsa AI team.',
     url: 'https://getvorsa.ai/blog',
+    images: [{ url: 'https://getvorsa.ai/og-image.png', width: 1200, height: 630 }],
   },
   alternates: {
     canonical: 'https://getvorsa.ai/blog',
