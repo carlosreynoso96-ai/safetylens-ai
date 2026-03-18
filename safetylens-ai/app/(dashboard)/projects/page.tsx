@@ -117,7 +117,7 @@ export default function ProjectsPage() {
                 type="text"
                 value={newProject.name}
                 onChange={(e) => setNewProject((p) => ({ ...p, name: e.target.value }))}
-                placeholder='e.g. "Hard Rock Hotel - Guitar Podium"'
+                placeholder='e.g. "Riverside Tower - Phase 2"'
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
@@ -129,7 +129,7 @@ export default function ProjectsPage() {
                 type="text"
                 value={newProject.location}
                 onChange={(e) => setNewProject((p) => ({ ...p, location: e.target.value }))}
-                placeholder="e.g. Hollywood, FL"
+                placeholder="e.g. Austin, TX"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
