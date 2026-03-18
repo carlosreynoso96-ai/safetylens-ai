@@ -16,6 +16,7 @@ export default function ProjectsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [newProject, setNewProject] = useState({ name: '', location: '', description: '' })
   const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) fetchProjects()
@@ -38,6 +39,7 @@ export default function ProjectsPage() {
   async function handleCreate() {
     if (!newProject.name.trim() || !user) return
     setCreating(true)
+    setCreateError(null)
 
     const supabase = supabaseRef.current
 
@@ -52,7 +54,14 @@ export default function ProjectsPage() {
       .select()
       .single()
 
-    if (data && !error) {
+    if (error) {
+      console.error('Error creating project:', error)
+      setCreateError(error.message || 'Failed to create project. Please try again.')
+      setCreating(false)
+      return
+    }
+
+    if (data) {
       setProjects((prev) => [data as Project, ...prev])
       setNewProject({ name: '', location: '', description: '' })
       setShowCreate(false)
@@ -95,6 +104,11 @@ export default function ProjectsPage() {
             </button>
           </div>
           <div className="space-y-3">
+            {createError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {createError}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Project Name *

@@ -58,6 +58,33 @@ function greeting(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Email 0 — Confirm your email (sent on signup via custom route)
+// ---------------------------------------------------------------------------
+
+export async function sendConfirmationEmail(to: string, fullName: string, confirmUrl: string) {
+  const html = layout(`
+    ${greeting(fullName)}
+    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
+      Thanks for signing up for <strong>Vorsa AI</strong>! Please confirm your email address to activate your account and start your <strong>14&#8209;day free trial</strong>.
+    </p>
+    ${ctaButton('Confirm Email Address', confirmUrl)}
+    <p style="margin:0 0 8px;font-size:13px;color:#9ca3af;line-height:1.5;">
+      If you didn&rsquo;t create this account, you can safely ignore this email.
+    </p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.5;">
+      This link expires in 24 hours.
+    </p>
+  `)
+
+  return resend.emails.send({
+    from: FROM,
+    to,
+    subject: 'Confirm your email — Vorsa AI',
+    html,
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Email 1 — Welcome (Day 0)
 // ---------------------------------------------------------------------------
 

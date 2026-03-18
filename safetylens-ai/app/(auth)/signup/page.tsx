@@ -3,7 +3,6 @@
 import { useState, FormEvent, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { trackSignup } from '@/lib/utils/analytics'
 
 export default function SignUpPage() {
@@ -49,37 +48,28 @@ function SignUpForm() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            company: company.trim() || null,
-          },
-        },
+      // Use our custom signup API that sends a styled confirmation email
+      // via Resend instead of Supabase's default plain-text email.
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          full_name: fullName.trim(),
+          company: company.trim() || null,
+        }),
       })
 
-      if (signUpError) {
-        setError(signUpError.message)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to create account.')
         return
       }
 
       trackSignup()
       setEmailSent(true)
-
-      // Fire welcome drip email (non-blocking)
-      fetch('/api/emails/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim(),
-          full_name: fullName.trim(),
-        }),
-      }).catch(() => {
-        // Silently ignore — welcome email is best-effort
-      })
 
       // Link referral if ref code is present (non-blocking)
       const refCode = searchParams.get('ref')

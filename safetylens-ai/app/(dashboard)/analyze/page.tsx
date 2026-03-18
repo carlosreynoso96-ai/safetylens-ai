@@ -94,15 +94,17 @@ export default function AnalyzePage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Failed to create audit' }))
-        console.error('Error creating audit:', errData.error)
-        return null
+        const msg = errData.error || `Failed to create audit (HTTP ${res.status})`
+        console.error('Error creating audit:', msg)
+        throw new Error(msg)
       }
 
       const { audit } = await res.json()
-      return audit?.id || null
+      if (!audit?.id) throw new Error('No audit ID returned')
+      return audit.id
     } catch (err) {
       console.error('Error creating audit:', err)
-      return null
+      throw err
     }
   }, [projectId, inspectorName])
 
@@ -240,9 +242,21 @@ export default function AnalyzePage() {
       // Ensure we have an audit
       let currentAuditId = auditId
       if (!currentAuditId) {
-        currentAuditId = await createAudit()
+        try {
+          currentAuditId = await createAudit()
+        } catch (auditErr) {
+          const errMsg = auditErr instanceof Error ? auditErr.message : 'Failed to create audit'
+          setQueue((prev) =>
+            prev.map((q) =>
+              q.status === 'pending'
+                ? { ...q, status: 'error' as const, error: errMsg }
+                : q,
+            ),
+          )
+          isProcessingRef.current = false
+          return
+        }
         if (!currentAuditId) {
-          // Mark all pending as error
           setQueue((prev) =>
             prev.map((q) =>
               q.status === 'pending'

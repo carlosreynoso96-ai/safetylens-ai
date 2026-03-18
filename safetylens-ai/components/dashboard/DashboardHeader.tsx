@@ -5,7 +5,10 @@ import { User } from 'lucide-react'
 
 export function DashboardHeader() {
   const { user, profile } = useAuth()
-  const userName = profile?.full_name || user?.email || ''
+  // Prefer profile name, fall back to auth metadata, never show raw email
+  const userName = profile?.full_name
+    || (user as any)?.user_metadata?.full_name
+    || ''
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
