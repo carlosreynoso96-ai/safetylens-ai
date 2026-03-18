@@ -40,12 +40,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (!mounted) return
-      if (error) {
-        console.error('[AuthProvider] Error fetching profile:', error.message)
-        setProfile(null)
+
+      if (data) {
+        setProfile(data)
         return
       }
-      setProfile(data)
+
+      // Profile row missing (DB trigger may have failed) — ask server to create it
+      if (error) {
+        console.warn('[AuthProvider] Profile not found, calling /api/profile/ensure')
+        try {
+          const res = await fetch('/api/profile/ensure', { method: 'POST' })
+          if (res.ok) {
+            const { profile: created } = await res.json()
+            if (mounted && created) {
+              setProfile(created)
+              return
+            }
+          }
+        } catch (ensureErr) {
+          console.error('[AuthProvider] ensure-profile failed:', ensureErr)
+        }
+        setProfile(null)
+      }
     }
 
     // Safety timeout: if auth check takes > 10s, release loading
