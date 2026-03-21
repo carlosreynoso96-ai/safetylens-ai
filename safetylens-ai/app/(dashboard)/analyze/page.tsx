@@ -15,7 +15,7 @@ import { CheckCircle } from 'lucide-react'
 
 const FETCH_TIMEOUT_MS = 90_000 // 90 seconds — generous for AI vision calls
 const MAX_RETRIES = 2
-const CONCURRENCY = 2 // Keep under rate limit (10 req/60s)
+const CONCURRENCY = 4 // Each request takes 10-20s, so 4 concurrent stays under 10 req/60s
 
 export default function AnalyzePage() {
   const { user, profile } = useAuth()
