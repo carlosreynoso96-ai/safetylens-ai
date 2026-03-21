@@ -210,10 +210,10 @@ export default function AnalyzePage() {
           return // Success — exit retry loop
 
         } catch (err) {
-          lastError = err instanceof Error ? err.message : 'Unknown error'
+          lastError = err instanceof Error ? err.message : String(err || 'Image processing failed')
 
-          // If this was our last attempt, or it's a non-retryable error, fail
-          if (attempt >= MAX_RETRIES || lastError.includes('limit') || lastError.includes('Unauthorized') || lastError.includes('expired')) {
+          // Compression / client-side errors are not retryable
+          if (attempt >= MAX_RETRIES || lastError.includes('compress') || lastError.includes('limit') || lastError.includes('Unauthorized') || lastError.includes('expired')) {
             break
           }
 
