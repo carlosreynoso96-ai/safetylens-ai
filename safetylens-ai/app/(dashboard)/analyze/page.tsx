@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { compressImage, fileToBase64 } from '@/lib/utils/compress-image'
+import { uploadPhotoToStorage } from '@/lib/utils/compress-image'
 import type { Observation, Project, PhotoQueueItem } from '@/types/audit'
 import { useRouter } from 'next/navigation'
 import { PhotoDropZone } from '@/components/analyze/PhotoDropZone'
@@ -148,21 +148,20 @@ export default function AnalyzePage() {
 
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          // Compress the image
-          const compressed = await compressImage(item.file)
-          const base64 = await fileToBase64(compressed)
+          // Upload raw file to Supabase Storage (no client-side decoding)
+          const { storagePath } = await uploadPhotoToStorage(
+            item.file,
+            user!.id,
+            currentAuditId,
+          )
 
-          // Determine media type
-          const mediaType = compressed.type || 'image/jpeg'
-
-          // Call the API with timeout
+          // Call the API with storage path — server compresses with Sharp
           const res = await fetchWithTimeout('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              image_base64: base64,
+              storage_path: storagePath,
               audit_id: currentAuditId,
-              media_type: mediaType,
             }),
           })
 
@@ -177,7 +176,6 @@ export default function AnalyzePage() {
             // Retry transient errors (429, 500, 502, 503, 504)
             if (attempt < MAX_RETRIES && (errData.retryable || res.status >= 500 || res.status === 429)) {
               lastError = errData.error || `HTTP ${res.status}`
-              // Respect Retry-After header for rate limits, otherwise use exponential backoff
               const retryAfter = res.headers.get('Retry-After')
               const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : (attempt + 1) * 5000
               await new Promise((resolve) => setTimeout(resolve, delay))
@@ -190,8 +188,10 @@ export default function AnalyzePage() {
           const data = await res.json()
           const observation = data.observation as Observation
 
-          // Store base64 image for PDF export
-          observationImagesRef.current[observation.id] = `data:${mediaType};base64,${base64}`
+          // Use the photo_url from the server for PDF export (if available)
+          if (observation.photo_url) {
+            observationImagesRef.current[observation.id] = observation.photo_url
+          }
 
           // Mark as complete and revoke blob URL to free memory
           setQueue((prev) =>
@@ -212,8 +212,8 @@ export default function AnalyzePage() {
         } catch (err) {
           lastError = err instanceof Error ? err.message : String(err || 'Image processing failed')
 
-          // Compression / client-side errors are not retryable
-          if (attempt >= MAX_RETRIES || lastError.includes('compress') || lastError.includes('limit') || lastError.includes('Unauthorized') || lastError.includes('expired')) {
+          // Upload / auth errors are not retryable
+          if (attempt >= MAX_RETRIES || lastError.includes('Upload failed') || lastError.includes('limit') || lastError.includes('Unauthorized') || lastError.includes('expired')) {
             break
           }
 
@@ -235,7 +235,7 @@ export default function AnalyzePage() {
         }),
       )
     },
-    [fetchWithTimeout],
+    [user, fetchWithTimeout],
   )
 
   // Process the pending queue with N concurrent workers

@@ -1,13 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzePhoto } from '@/lib/anthropic/analyze'
 import { PLANS } from '@/lib/constants/plans'
 import { PlanType } from '@/types/plan'
 import { rateLimit } from '@/lib/utils/rate-limit'
 import { cacheDel } from '@/lib/redis/cache'
+import sharp from 'sharp'
 
 // Allow up to 60 seconds for AI analysis (important for Vercel deployment)
 export const maxDuration = 60
+
+/**
+ * Download a raw photo from Supabase Storage, resize with Sharp, return base64.
+ * Sharp processes images in streaming tiles — never loads the full bitmap.
+ */
+async function compressFromStorage(storagePath: string): Promise<{ base64: string; mediaType: string }> {
+  const admin = createAdminClient()
+  const { data, error } = await admin.storage.from('audit-photos').download(storagePath)
+  if (error || !data) throw new Error(`Storage download failed: ${error?.message}`)
+
+  const arrayBuffer = await data.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  const compressed = await sharp(buffer)
+    .rotate() // auto-rotate based on EXIF
+    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 75 })
+    .toBuffer()
+
+  return {
+    base64: compressed.toString('base64'),
+    mediaType: 'image/jpeg',
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,23 +53,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let body: { image_base64?: string; audit_id?: string; media_type?: string }
+    let body: { image_base64?: string; storage_path?: string; audit_id?: string; media_type?: string }
     try {
       body = await request.json()
     } catch {
       return NextResponse.json(
-        { error: 'Failed to parse request body. The image may be too large — try a smaller photo.', retryable: false },
+        { error: 'Failed to parse request body.', retryable: false },
         { status: 400 }
       )
     }
 
-    const { image_base64, audit_id, media_type } = body
+    const { image_base64, storage_path, audit_id, media_type } = body
 
-    if (!image_base64 || !audit_id) {
+    if (!audit_id || (!image_base64 && !storage_path)) {
       return NextResponse.json(
-        { error: 'Missing required fields: image_base64, audit_id' },
+        { error: 'Missing required fields: audit_id and either image_base64 or storage_path' },
         { status: 400 }
       )
+    }
+
+    // Resolve the image — either from storage (new flow) or inline base64 (legacy)
+    let finalBase64: string
+    let finalMediaType: string
+
+    if (storage_path) {
+      const result = await compressFromStorage(storage_path)
+      finalBase64 = result.base64
+      finalMediaType = result.mediaType
+    } else {
+      finalBase64 = image_base64!
+      finalMediaType = media_type || 'image/jpeg'
     }
 
     // Check plan limits
@@ -114,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call AI analysis
-    const observation = await analyzePhoto(image_base64, media_type || 'image/jpeg')
+    const observation = await analyzePhoto(finalBase64, finalMediaType)
 
     // Determine initial compliance and narrative
     const compliance = observation.best_guess
@@ -171,36 +210,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload photo to Supabase Storage (best-effort — don't fail the request if storage fails)
+    // Move raw photo to final location and generate signed URL (best-effort)
     try {
-      const ext = (media_type || 'image/jpeg').split('/')[1] || 'jpeg'
-      const storagePath = `${user.id}/${audit_id}/${savedObs.id}.${ext}`
-      const buffer = Buffer.from(image_base64, 'base64')
+      const finalPath = `${user.id}/${audit_id}/${savedObs.id}.jpeg`
 
-      const { error: uploadError } = await supabase.storage
-        .from('audit-photos')
-        .upload(storagePath, buffer, {
-          contentType: media_type || 'image/jpeg',
-          upsert: false,
-        })
-
-      if (!uploadError) {
-        // Generate signed URL (valid for 1 year)
-        const { data: signedData } = await supabase.storage
+      if (storage_path) {
+        // Copy compressed version to final path
+        const compressedBuffer = Buffer.from(finalBase64, 'base64')
+        await supabase.storage
           .from('audit-photos')
-          .createSignedUrl(storagePath, 60 * 60 * 24 * 365)
+          .upload(finalPath, compressedBuffer, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          })
 
-        if (signedData?.signedUrl) {
-          await supabase
-            .from('observations')
-            .update({ photo_url: signedData.signedUrl })
-            .eq('id', savedObs.id)
-
-          // Include the photo_url in the response
-          savedObs.photo_url = signedData.signedUrl
-        }
+        // Delete the raw upload
+        const admin = createAdminClient()
+        await admin.storage.from('audit-photos').remove([storage_path])
       } else {
-        console.error('Photo upload failed (non-fatal):', uploadError.message)
+        // Legacy base64 flow — upload directly
+        const buffer = Buffer.from(finalBase64, 'base64')
+        await supabase.storage
+          .from('audit-photos')
+          .upload(finalPath, buffer, {
+            contentType: finalMediaType,
+            upsert: false,
+          })
+      }
+
+      // Generate signed URL (valid for 1 year)
+      const { data: signedData } = await supabase.storage
+        .from('audit-photos')
+        .createSignedUrl(finalPath, 60 * 60 * 24 * 365)
+
+      if (signedData?.signedUrl) {
+        await supabase
+          .from('observations')
+          .update({ photo_url: signedData.signedUrl })
+          .eq('id', savedObs.id)
+        savedObs.photo_url = signedData.signedUrl
       }
     } catch (uploadErr) {
       console.error('Photo storage error (non-fatal):', uploadErr)
@@ -242,7 +290,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Analysis error:', error)
 
-    // Return more specific error messages
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (message.includes('timeout') || message.includes('Timeout')) {
@@ -256,6 +303,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.', code: 'RATE_LIMITED', retryable: true },
         { status: 429 }
+      )
+    }
+
+    if (message.includes('Storage download failed')) {
+      return NextResponse.json(
+        { error: 'Failed to read uploaded photo. Please try again.', retryable: true },
+        { status: 500 }
       )
     }
 
