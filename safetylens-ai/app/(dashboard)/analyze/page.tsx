@@ -15,7 +15,7 @@ import { CheckCircle } from 'lucide-react'
 
 const FETCH_TIMEOUT_MS = 90_000 // 90 seconds — generous for AI vision calls
 const MAX_RETRIES = 2
-const CONCURRENCY = 5 // Process 5 photos simultaneously
+const CONCURRENCY = 2 // Keep under rate limit (10 req/60s)
 
 export default function AnalyzePage() {
   const { user, profile } = useAuth()
@@ -177,7 +177,9 @@ export default function AnalyzePage() {
             // Retry transient errors (429, 500, 502, 503, 504)
             if (attempt < MAX_RETRIES && (errData.retryable || res.status >= 500 || res.status === 429)) {
               lastError = errData.error || `HTTP ${res.status}`
-              const delay = (attempt + 1) * 3000 // 3s, 6s
+              // Respect Retry-After header for rate limits, otherwise use exponential backoff
+              const retryAfter = res.headers.get('Retry-After')
+              const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : (attempt + 1) * 5000
               await new Promise((resolve) => setTimeout(resolve, delay))
               continue
             }
@@ -221,13 +223,16 @@ export default function AnalyzePage() {
         }
       }
 
-      // All attempts failed
+      // All attempts failed — revoke blob URL to free memory
       setQueue((prev) =>
-        prev.map((q) =>
-          q.id === item.id
-            ? { ...q, status: 'error' as const, error: lastError }
-            : q,
-        ),
+        prev.map((q) => {
+          if (q.id === item.id) {
+            URL.revokeObjectURL(q.preview)
+            blobUrlsRef.current.delete(q.preview)
+            return { ...q, status: 'error' as const, error: lastError }
+          }
+          return q
+        }),
       )
     },
     [fetchWithTimeout],
