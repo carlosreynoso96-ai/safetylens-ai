@@ -39,6 +39,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  verification: {
+    google: "kHtwkrpDZ_LlvLifHJNod69mL9jw2Uuf3caFpRgdsx8",
+  },
   openGraph: {
     title: "Vorsa AI — AI-Powered Safety Audits for Construction",
     description:
