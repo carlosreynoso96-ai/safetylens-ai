@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'Vorsa AI — AI-Powered Safety Audits for Construction',
   description:
     'Turn jobsite photos into OSHA-cited safety reports in seconds. Walk with an AI safety coach who guides you in real time. Start your free trial today.',
+  alternates: {
+    canonical: 'https://getvorsa.ai',
+  },
 }
 
 export default function MarketingPage() {
