@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     url: 'https://getvorsa.ai/pricing',
     images: [{ url: 'https://getvorsa.ai/og-image.png', width: 1200, height: 630 }],
   },
+  alternates: {
+    canonical: 'https://getvorsa.ai/pricing',
+  },
 }
 
 export default function PricingPage() {
