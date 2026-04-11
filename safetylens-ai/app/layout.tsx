@@ -11,7 +11,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vorsa AI — AI-Powered Safety Audits for Construction",
+  metadataBase: new URL("https://getvorsa.ai"),
+  title: {
+    default: "Vorsa AI — AI-Powered Safety Audits for Construction",
+    template: "%s — Vorsa AI",
+  },
   description:
     "Turn jobsite photos into OSHA-cited safety reports in seconds. Walk with an AI safety coach who guides you in real time. Built for construction professionals.",
   keywords: [
@@ -21,7 +25,20 @@ export const metadata: Metadata = {
     "AI safety inspector",
     "jobsite safety",
     "safety walk",
+    "construction safety audit software",
+    "AI safety inspection",
+    "OSHA violation detection",
+    "jobsite photo analysis",
+    "safety audit report",
+    "construction safety technology",
+    "automated safety inspection",
+    "OSHA construction fines",
+    "safety compliance software",
+    "construction hazard detection",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Vorsa AI — AI-Powered Safety Audits for Construction",
     description:
@@ -31,7 +48,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://getvorsa.ai/og-image.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Vorsa AI — AI-Powered Safety Audits for Construction",
@@ -43,7 +60,7 @@ export const metadata: Metadata = {
     title: "Vorsa AI",
     description:
       "Turn jobsite photos into OSHA-cited safety reports in seconds.",
-    images: ["https://getvorsa.ai/og-image.png"],
+    images: ["/og-image.png"],
   },
 };
 
