@@ -88,7 +88,34 @@ export const blogPosts: BlogPost[] = [
     author: 'Vorsa AI Team',
     readTime: '6 min read',
     tags: ['Safety Manager', 'Daily Checklist', 'Morning Routine', 'Construction'],
+  },  {
+    slug: 'construction-safety-technology-roi',
+    title: 'Construction Safety Technology ROI: The Financial Case for Investing in Safety Tech',
+    description: 'Discover how AI-powered safety tools deliver measurable ROI through reduced violations, lower insurance costs, and prevented incidents.',
+    date: '2026-04-11',
+    author: 'Vorsa AI Team',
+    readTime: '9 min read',
+    tags: ['Safety Technology', 'ROI', 'Cost Reduction', 'Construction Management'],
   },
+  {
+    slug: 'subcontractor-safety-management',
+    title: 'Subcontractor Safety Management: Best Practices for Compliance and Accountability',
+    description: 'Master subcontractor safety oversight with practical compliance strategies, documentation templates, and safety walk procedures.',
+    date: '2026-04-11',
+    author: 'Vorsa AI Team',
+    readTime: '8 min read',
+    tags: ['Subcontractor Management', 'Safety Compliance', 'OSHA', 'Best Practices'],
+  },
+  {
+    slug: 'construction-safety-documentation-requirements',
+    title: 'Construction Safety Documentation Requirements: OSHA Recordkeeping Compliance Guide',
+    description: 'Comprehensive guide to OSHA recordkeeping requirements, documentation best practices, and how to maintain audit-ready safety records.',
+    date: '2026-04-11',
+    author: 'Vorsa AI Team',
+    readTime: '10 min read',
+    tags: ['OSHA Recordkeeping', 'Documentation', 'Compliance', 'Safety Records'],
+  },
+
 ]
 
 export const blogContent = new Map<string, string>([
@@ -728,5 +755,87 @@ export const blogContent = new Map<string, string>([
 
 <h2>Make It a Habit</h2>
 <p>The power of a daily checklist isn't any single item — it's the consistency. When your crew sees you running the same thorough check every morning, they internalize that safety isn't optional. Over weeks and months, that consistency becomes culture. And culture is what keeps people alive on a construction site.</p>`,
+  ],
+  [
+    'construction-safety-technology-roi',
+    `<h2>Why Construction Companies Need to Calculate Safety Technology ROI</h2>
+
+<p>The construction industry loses approximately $165 billion annually to lost productivity, medical treatment, and workers' compensation claims related to injuries and hazards. Yet many construction firms still rely on manual safety inspections and paper-based documentation. The question is not whether you can afford to invest in safety technology but whether you can afford not to.</p>
+
+<p>AI-powered jobsite analysis and automated audit tools deliver measurable return on investment through multiple financial channels. Understanding these ROI drivers helps construction leaders make data-driven decisions about safety tech investments.</p>
+
+<h2>The Real Cost of OSHA Violations</h2>
+
+<p>OSHA penalties have increased dramatically. In 2025, the maximum penalty for serious violations reached $10,755 per violation, and willful violations can exceed $160,000. But the direct penalty is just a fraction of the true cost.</p>
+
+<p>A single serious violation typically triggers direct fines ($5,000-$160,000+), workers' compensation increases that raise premiums 10-50% for 3+ years, project delays from stop-work orders, insurance premium increases across all future projects, legal fees averaging $75,000-$150,000, and reputation damage affecting future bids.</p>
+
+<h2>Calculating Your Safety Technology ROI</h2>
+
+<p>Safety technology ROI comes from four primary channels: reduced incident costs, lower insurance premiums through EMR improvement, time savings from automated documentation, and improved bid competitiveness.</p>
+
+<p>Consider a mid-size GC with 100 employees and 5 recordable incidents per year. At an average cost of $42,000 per incident, that is $210,000 annually. A 30% incident reduction through proactive AI-powered audits saves $63,000 per year in direct incident costs alone.</p>
+
+<p>Add EMR improvement savings (lower workers' comp premiums), time savings from automated audit reports, and reduced legal exposure, and total annual savings often exceed $150,000 for a company of this size.</p>
+
+<h2>Time Savings from Automated Audits</h2>
+
+<p>Traditional safety audits consume significant time. A typical safety director spends 40+ hours per month on audit documentation, report formatting, and compliance tracking. Tools like <a href="https://getvorsa.ai">Vorsa AI</a> that automate photo analysis and report generation can reduce this by 80%, freeing safety professionals to focus on what matters most: actually improving jobsite safety culture.</p>
+
+<h2>The Bottom Line</h2>
+
+<p>For most mid-size general contractors, safety technology delivers ROI within the first 3-6 months. The combination of reduced incidents, lower insurance costs, time savings, and improved bid competitiveness makes the financial case compelling.</p>`,
+  ],
+  [
+    'subcontractor-safety-management',
+    `<h2>Why Subcontractor Safety Management Matters</h2>
+
+<p>On most commercial construction projects, subcontractors perform 80-90% of the work. That means the majority of safety risk on your jobsite comes from crews you do not directly employ. Under OSHA's multi-employer citation policy, the general contractor can be cited for hazards created by subcontractors if the GC had the ability to prevent or correct them.</p>
+
+<p>In 2025, OSHA issued a $189,000 citation to a general contractor for failing to enforce fall protection requirements among its subcontractors, even though the GC's own employees were not exposed to the hazard. The message is clear: subcontractor safety is your responsibility.</p>
+
+<h2>Pre-Qualification: Your First Line of Defense</h2>
+
+<p>Effective subcontractor safety management starts before the contract is signed. A robust pre-qualification process should evaluate the sub's EMR (Experience Modification Rate) for the past 3 years, their OSHA citation history, written safety programs and training records, designated competent persons for high-risk activities, and insurance coverage adequacy.</p>
+
+<p>Set clear thresholds. Many GCs require an EMR below 1.0 and zero willful or repeat OSHA violations within the past 3 years.</p>
+
+<h2>Contract Language That Protects Everyone</h2>
+
+<p>Your subcontract agreements should include specific safety requirements per OSHA 29 CFR 1926, mandatory participation in site-specific safety orientations, daily safety documentation requirements, right to stop work for safety violations, and financial responsibility for safety-related delays or citations.</p>
+
+<h2>Daily Oversight and Documentation</h2>
+
+<p>Pre-qualification and contracts set expectations. Daily oversight enforces them. This means conducting regular safety walks across all subcontractor work areas, documenting findings with photos and specific OSHA references, issuing corrective action notices with deadlines, and tracking corrective action completion rates.</p>
+
+<p>Tools like <a href="https://getvorsa.ai">Vorsa AI</a> make this process dramatically faster by analyzing jobsite photos for hazards and generating documentation with specific OSHA citations automatically. What used to take a safety director an hour per sub area now takes minutes.</p>
+
+<h2>Building a Culture of Accountability</h2>
+
+<p>The most effective subcontractor safety programs go beyond compliance. They create accountability through weekly safety scorecards for each subcontractor, recognition programs for crews with clean safety records, escalation procedures that are consistent and transparent, and regular toolbox talks that include subcontractor crews. When subcontractors know that safety performance directly affects their standing on current and future projects, behavior changes.</p>`,
+  ],
+  [
+    'construction-safety-documentation-requirements',
+    `<h2>OSHA Recordkeeping Requirements for Construction</h2>
+
+<p>OSHA's recordkeeping standard (29 CFR 1904) requires most construction employers with more than 10 employees to maintain records of work-related injuries and illnesses. Getting this wrong can result in citations, increased audit scrutiny, and weakened legal defenses when incidents occur.</p>
+
+<p>The core requirements include maintaining OSHA Form 300 (Log of Work-Related Injuries and Illnesses), OSHA Form 300A (Summary posted February 1 through April 30 annually), OSHA Form 301 (Individual incident reports completed within 7 days), and electronic submission of injury data for establishments with 20+ employees.</p>
+
+<h2>What Counts as a Recordable Incident</h2>
+
+<p>An injury or illness is recordable under OSHA standards if it is work-related and results in death, days away from work, restricted work or transfer, medical treatment beyond first aid, loss of consciousness, or a significant diagnosis by a physician. Understanding the distinction between first aid and medical treatment is critical. Butterfly bandages are first aid; sutures are medical treatment. This single distinction determines whether an incident goes on your OSHA 300 log.</p>
+
+<h2>Beyond OSHA Minimums: Documentation Best Practices</h2>
+
+<p>Smart construction companies document far more than OSHA requires. Comprehensive safety documentation includes daily safety inspection records with photos and timestamps, toolbox talk attendance logs with topics covered, near-miss reports and corrective actions taken, equipment inspection records (especially for cranes, scaffolding, and fall protection), training records including competent person designations, and site-specific safety plans updated for each project phase.</p>
+
+<h2>Digital Documentation Systems</h2>
+
+<p>Paper-based safety documentation creates several problems: records get lost, handwriting is illegible, there is no timestamp verification, and retrieval during OSHA inspections is slow. Modern safety platforms like <a href="https://getvorsa.ai">Vorsa AI</a> solve these problems by creating timestamped, GPS-tagged, photo-verified audit records that can be retrieved instantly from any device.</p>
+
+<h2>Retention Requirements</h2>
+
+<p>OSHA requires construction companies to retain injury and illness records for 5 years following the end of the calendar year they cover. Safety training records should be kept for the duration of employment plus 30 years for health-related training. Project-specific safety plans should be retained for at least 6 years after project completion. Building a systematic digital archive ensures you are always audit-ready and protected in litigation.</p>`,
   ],
 ])
