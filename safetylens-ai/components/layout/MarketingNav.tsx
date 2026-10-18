@@ -47,7 +47,7 @@ export default function MarketingNav() {
             <Camera className="h-5 w-5" />
           </div>
           <span className="text-xl font-bold tracking-tight text-gray-900">
-            Safety<span className="text-orange-500">Lens</span>
+            Vorsa
           </span>
         </Link>
 

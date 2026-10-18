@@ -42,7 +42,7 @@ export default function CoachDemo() {
               Walk Your Site with an AI Companion
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-gray-600">
-              SafetyLens Coach listens to your voice, guides you through
+              Vorsa Coach listens to your voice, guides you through
               trade-by-trade checklists, and automatically logs every observation
               with OSHA citations. When you are done, get a complete debrief report.
             </p>
@@ -94,7 +94,7 @@ export default function CoachDemo() {
                 <Headphones className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">SafetyLens Coach</p>
+                <p className="text-sm font-bold text-gray-900">Vorsa Coach</p>
                 <p className="text-xs text-green-600 font-medium">Active session &middot; Excavation Area</p>
               </div>
             </div>

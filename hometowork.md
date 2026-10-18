@@ -1,4 +1,4 @@
-# SafetyLens AI — Session Handoff
+# Vorsa AI — Session Handoff
 
 > **How to use:** Before ending a session, update the CURRENT SESSION section below.
 > When starting a new session (home or work), read this file top-to-bottom to resume instantly.
@@ -32,7 +32,7 @@ cd D:\Downloads\SafetyLens
 
 | Field | Value |
 |-------|-------|
-| App | SafetyLens AI — AI-powered jobsite safety audit platform |
+| App | Vorsa AI — AI-powered jobsite safety audit platform |
 | Stack | Next.js 16.1.6 / React 19 / TypeScript / Tailwind v4 |
 | AI | Anthropic Claude (photo analysis + safety coach) |
 | Auth & DB | Supabase (Auth + Postgres + Storage) |

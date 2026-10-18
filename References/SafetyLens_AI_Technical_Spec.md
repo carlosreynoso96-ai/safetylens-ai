@@ -1,19 +1,19 @@
-# SafetyLens AI — Technical Architecture Spec
+# Vorsa AI — Technical Architecture Spec
 
 **Version:** 1.0  
 **Date:** March 2026  
 **Author:** Carlos / OSO Construction Tech  
-**Purpose:** Complete blueprint for building the SafetyLens AI production web application. Hand this to Claude Code or a developer to build from scratch.
+**Purpose:** Complete blueprint for building the Vorsa AI production web application. Hand this to Claude Code or a developer to build from scratch.
 
 ---
 
 ## 1. Product Overview
 
-SafetyLens AI is a web application with two core features:
+Vorsa AI is a web application with two core features:
 
-1. **SafetyLens Analyze** — Drag-and-drop photo analysis that auto-generates OSHA-cited safety audit observations (narrative, CFR code, severity, corrective action, category) from jobsite photos using AI vision.
+1. **Vorsa Analyze** — Drag-and-drop photo analysis that auto-generates OSHA-cited safety audit observations (narrative, CFR code, severity, corrective action, category) from jobsite photos using AI vision.
 
-2. **SafetyLens Coach** — Real-time voice-based AI safety trainer that guides users through live jobsite walks, identifying what to check trade-by-trade and logging observations automatically.
+2. **Vorsa Coach** — Real-time voice-based AI safety trainer that guides users through live jobsite walks, identifying what to check trade-by-trade and logging observations automatically.
 
 **Business model:** SaaS, per-user monthly subscriptions with 5 tiers (Free Trial, Starter, Professional, Coach, Enterprise).
 
@@ -34,7 +34,7 @@ SafetyLens AI is a web application with two core features:
 | Voice | **Web Speech API** | Browser-native STT/TTS for Coach (no extra cost) |
 | Email | **Resend** | Transactional emails (welcome, receipts, alerts) |
 | Analytics | **PostHog** or **Plausible** | Privacy-friendly product analytics |
-| Domain | **safetylens.ai** | Primary domain |
+| Domain | **getvorsa.ai** | Primary domain |
 
 ---
 
@@ -683,7 +683,7 @@ IMPORTANT:
 
 ### Flow 1: New User Signup → First Audit
 
-1. User lands on safetylens.ai
+1. User lands on getvorsa.ai
 2. Clicks "Get Early Access" or "Start Free Trial"
 3. Signup form: email, password, full name, company (optional)
 4. Email verification (Supabase magic link)
@@ -755,7 +755,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 RESEND_API_KEY=re_...
 
 # App
-NEXT_PUBLIC_APP_URL=https://safetylens.ai
+NEXT_PUBLIC_APP_URL=https://getvorsa.ai
 ```
 
 ---
@@ -764,9 +764,9 @@ NEXT_PUBLIC_APP_URL=https://safetylens.ai
 
 ### Products to Create in Stripe Dashboard
 
-1. **SafetyLens Starter** — $29/month, per seat
-2. **SafetyLens Professional** — $49/month, per seat
-3. **SafetyLens Coach** — $89/month, per seat
+1. **Vorsa Starter** — $29/month, per seat
+2. **Vorsa Professional** — $49/month, per seat
+3. **Vorsa Coach** — $89/month, per seat
 
 ### Webhook Events to Listen For
 
@@ -794,7 +794,7 @@ Enable Stripe Customer Portal for self-service:
 ### Vercel Setup
 1. Connect GitHub repo to Vercel
 2. Set all environment variables in Vercel dashboard
-3. Add custom domain: safetylens.ai
+3. Add custom domain: getvorsa.ai
 4. Enable Vercel Analytics (optional)
 
 ### Supabase Setup
@@ -806,12 +806,12 @@ Enable Stripe Customer Portal for self-service:
 
 ### Stripe Setup
 1. Create products and prices
-2. Set up webhook endpoint: https://safetylens.ai/api/stripe/webhook
+2. Set up webhook endpoint: https://getvorsa.ai/api/stripe/webhook
 3. Enable Customer Portal
 4. Test with Stripe test mode first
 
 ### DNS
-1. Purchase safetylens.ai
+1. Purchase getvorsa.ai
 2. Point to Vercel (CNAME or A records)
 3. SSL auto-provisioned by Vercel
 
@@ -906,5 +906,5 @@ For Claude Code, build in this order to have a working app at each stage:
 
 ---
 
-*SafetyLens AI — Built by construction professionals, for construction professionals.*
+*Vorsa AI — Built by construction professionals, for construction professionals.*
 *OSO Construction Tech | OSO Design & Construction LLC*
